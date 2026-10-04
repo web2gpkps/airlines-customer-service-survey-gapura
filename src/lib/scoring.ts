@@ -60,7 +60,6 @@ export interface Response {
   route: string;
   flightType: string;
   travelPurpose: string;
-  isTestData: boolean;
   nps: number | null;
   scores: (number | null)[];
   comments: { best: string; improve: string; suggestion: string };

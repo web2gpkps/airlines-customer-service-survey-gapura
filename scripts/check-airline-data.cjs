@@ -32,14 +32,14 @@ const headers = [
   "6. Seberapa besar kemungkinan Anda merekomendasikan maskapai ini kepada keluarga/kolega/rekan bisnis?",
 ];
 const row = [
-  "DUM1", "[TEST]", "2026-01-01 00:00:00", "Tester", "[TEST]", "CGK-DPS", "[TEST]", "[TEST]",
+  "RESP1", "RESP-1", "2026-01-01 00:00:00", "Garuda Indonesia", "GA123", "CGK-DPS", "Domestik", "Bisnis",
   ...statements.map((_, index) => index === 0 ? "6" : "5"),
   "10",
 ];
 const data = parseSegment("airline", [headers, row]);
 assert.equal(data.sections.length, 8);
 assert.equal(data.responses.length, 1);
-assert.equal(data.testResponses, 1);
+assert.equal(data.responses[0].id, "RESP1");
 assert.equal(data.responses[0].route, "CGK - DPS");
 assert.equal(data.responses[0].nps, 10);
 assert.equal(data.responses[0].scores[0], null);

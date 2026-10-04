@@ -114,7 +114,6 @@ function addRecapSheet(
     ["Kategori", null],
     ["Status", null],
     ["Jumlah responden", { formula: `COUNTA(${src}!$A$2:$A$${last})`, result: rowCount }],
-    ["Terindikasi data uji", report.responses.filter((response) => response.isTestData).length],
   ];
   summary.forEach(([label, value, fmt], i) => {
     const r = 4 + i;
@@ -129,7 +128,6 @@ function addRecapSheet(
   });
   ws.getCell("C4").font = font({ bold: true, color: { argb: "FF0000FF" } });
   ws.getCell("C4").note = "Standar minimum index kepuasan Airline (skala Likert 1-5).";
-  ws.getCell("C9").note = "Dihitung saat ekspor dari pola ID DUM dan nama maskapai Tester. Nilai ini tidak berubah otomatis jika salinan Tally diedit.";
 
   const HEAD = 10;
   const headers = ["No", "Bagian", "Pernyataan", "1", "2", "3", "4", "5", "n", "Total Skor", "Skor Maksimum", "Index (1-5)", "Kategori", "Status KPI"];
@@ -246,8 +244,7 @@ function addRecapSheet(
   });
 
   ws.getCell(`A${overall + 2}`).value =
-    "Catatan: hanya skor bulat 1-5 yang dihitung; sel kosong diabaikan. Kategori dan status memakai index yang dibulatkan 2 desimal. " +
-    "Jumlah data uji ditentukan saat ekspor dari ID/nama maskapai pada sumber dan tidak berubah otomatis saat Tally diedit; respons tersebut tetap dihitung.";
+    "Catatan: hanya skor bulat 1-5 yang dihitung; sel kosong diabaikan. Kategori dan status memakai index yang dibulatkan 2 desimal.";
   ws.getCell(`A${overall + 2}`).font = font({ italic: true, color: { argb: MUTED } });
 }
 

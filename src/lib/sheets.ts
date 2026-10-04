@@ -10,7 +10,6 @@ export interface SegmentData {
   sections: SectionDef[];
   responses: Response[];
   unmapped: string[];
-  testResponses: number;
 }
 
 export interface ServerSegmentData extends SegmentData {
@@ -182,7 +181,6 @@ export function parseSegment(segment: Segment, rows: string[][]): ServerSegmentD
       route: normalizeRoute(value(row, col.route)),
       flightType: value(row, col.flightType),
       travelPurpose: value(row, col.travelPurpose),
-      isTestData: /^DUM\d+$/i.test(id) || /^(?:melisa\s+)?tester$/i.test(airline),
       nps: parseNps(value(row, col.nps)),
       scores,
       comments: {
@@ -198,7 +196,6 @@ export function parseSegment(segment: Segment, rows: string[][]): ServerSegmentD
     sections,
     responses,
     unmapped: other.map(({ text }) => text),
-    testResponses: responses.filter((response) => response.isTestData).length,
     headers,
     rows: body,
     statementCols,

@@ -30,7 +30,7 @@ NPS dihitung terpisah dari indeks Likert. Filter memakai waktu `Submitted at`, m
 
 Tampilan mengikuti dashboard Joumpa milik Gapura. Hijau dan lime berasal dari logo Gapura; warna status membantu membedakan hasil KPI dan selalu disertai teks. Plus Jakarta Sans dipakai agar pernyataan panjang mudah dibaca, sedangkan IBM Plex Mono menjaga angka dan metadata mudah dipindai. Ringkasan ditempatkan sebelum indeks bagian dan rincian agar pengguna dapat melihat status lalu mencari penyebabnya. Kartu dan jarak antarkelompok memisahkan ringkasan dari bukti pernyataan. Motif garis halus pada header merujuk jalur landasan, terbatas pada header agar isi survei tetap dominan. Gerak hanya dipakai saat elemen masuk atau nilai batang berubah.
 
-Saat audit awal, semua 32 respons pada sheet terindikasi data uji (30 ID berawalan `DUM`, dua respons lain bertanda `Tester`). Aplikasi menandainya dan tidak menyajikan angka tersebut sebagai hasil produksi. Pertanyaan kondisional seperti transit dan Lost & Found terisi juga pada responden yang mungkin tidak mengalami layanan itu; penafsiran indeks bagian tersebut perlu memperhatikan cara form mengumpulkan jawaban.
+Seluruh respons yang terbaca dari sheet diperlakukan sebagai data survei. Pertanyaan kondisional seperti transit dan Lost & Found hanya memengaruhi indeks bila dijawab.
 
 ## Halaman dan ekspor
 

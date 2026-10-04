@@ -25,7 +25,6 @@ export function Dashboard({ data }: { data: DashboardData }) {
 
   const segment = data.segments.airline;
   const filtered = useMemo(() => applyFilters(segment.responses, filters), [segment.responses, filters]);
-  const testCount = filtered.filter((response) => response.isTestData).length;
   const options = useMemo(() => {
     const all = segment.responses;
     return {
@@ -78,14 +77,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
       </div>
 
       <main className="mx-auto max-w-[1320px] px-4 pt-6 pb-16 sm:px-6 lg:px-8">
-        {testCount > 0 && (
-          <p role="note" className="mb-5 rounded-xl border border-warn bg-warn-wash px-4 py-3 text-sm font-medium text-ink-2">
-            {testCount === filtered.length
-              ? `Seluruh ${testCount} respons pada pilihan ini adalah data uji. Index dan KPI di bawah belum mewakili hasil survei sebenarnya.`
-              : `${testCount} dari ${filtered.length} respons pada pilihan ini adalah data uji dan masih tercampur dalam perhitungan index dan KPI.`}
-          </p>
-        )}
-        <SegmentView meta={SEGMENT_META.airline} sheet={segment.sheet} sections={segment.sections} responses={filtered} unmapped={segment.unmapped} hasFilters={hasFilters(filters)} hasTestData={testCount > 0} />
+        <SegmentView meta={SEGMENT_META.airline} sheet={segment.sheet} sections={segment.sections} responses={filtered} unmapped={segment.unmapped} hasFilters={hasFilters(filters)} />
       </main>
 
       <footer className="border-t border-line bg-card"><div className="mx-auto flex max-w-[1320px] flex-wrap justify-between gap-2 px-4 py-5 text-xs text-muted sm:px-6 lg:px-8"><span>PT Gapura Angkasa · Survei kepuasan pelanggan maskapai</span><span>Data diperbarui otomatis tiap 2 menit selama halaman terbuka</span></div></footer>

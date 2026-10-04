@@ -25,8 +25,6 @@ export function Presentation({ data, query }: { data: DashboardData; query: Repo
   );
   const has = (k: ContentKey) => query.content.includes(k);
   const dates = reports.flatMap((r) => r.responses.map((x) => x.date)).filter(Boolean).sort();
-  const selectedResponses = reports.flatMap((report) => report.responses);
-  const testCount = selectedResponses.filter((response) => response.isTestData).length;
 
   return (
     <div className="min-h-dvh bg-page">
@@ -58,14 +56,7 @@ export function Presentation({ data, query }: { data: DashboardData; query: Repo
           </div>
         </section>
 
-        {testCount > 0 && (
-          <p role="note" className="rounded-xl border border-warn bg-warn-wash px-4 py-3 text-sm font-medium text-ink-2">
-            {testCount === selectedResponses.length
-              ? `Seluruh ${testCount} respons pada laporan ini adalah data uji. Index dan KPI belum mewakili hasil survei sebenarnya.`
-              : `${testCount} dari ${selectedResponses.length} respons pada laporan ini adalah data uji dan masih tercampur dalam perhitungan index dan KPI.`}
-          </p>
-        )}
-        {reports.map((r) => <SegmentReportView key={r.seg} report={r} has={has} hasTestData={r.responses.some((response) => response.isTestData)} />)}
+        {reports.map((r) => <SegmentReportView key={r.seg} report={r} has={has} />)}
 
         {has("standar") && (
           <section className="grid gap-5">
@@ -138,11 +129,9 @@ function SectionTitle({ eyebrow, title, description }: { eyebrow?: string; title
 function SegmentReportView({
   report,
   has,
-  hasTestData,
 }: {
   report: SegmentReport;
   has: (k: ContentKey) => boolean;
-  hasTestData: boolean;
 }) {
   const { meta, result, responses } = report;
   return (
@@ -171,7 +160,7 @@ function SegmentReportView({
           )}
 
           {has("bagian") && (
-            <Block title="Index per bagian layanan" description={hasTestData ? "Garis hitam menandai standar KPI 4,50. Pada data uji, butir Transit, Gangguan, dan Lost & Found juga dijawab oleh responden yang tidak mengalami layanan tersebut." : "Garis hitam menandai standar KPI 4,50."}>
+            <Block title="Index per bagian layanan" description="Garis hitam menandai standar KPI 4,50.">
               <SectionBars result={result} />
             </Block>
           )}
@@ -200,7 +189,7 @@ function SegmentReportView({
           )}
 
           {has("rincian") && (
-            <Block title="Rincian per pernyataan" description={hasTestData ? "Jumlah pemilih skor 1 sampai 5. Pada data uji, jawaban untuk butir kondisional belum otomatis mencerminkan pengalaman langsung." : "Jumlah responden yang memilih skor 1 sampai 5 di tiap bagian."}>
+            <Block title="Rincian per pernyataan" description="Jumlah responden yang memilih skor 1 sampai 5 di tiap bagian.">
               <LikertLegend />
               <div className="grid gap-4">
                 {result.sections.map((s) => {

@@ -105,8 +105,6 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
     });
   }
   cur.y += text(`Data Google Sheets per ${formatDateTime(data.fetchedAt)}`, M, 9, { color: MUTED });
-  const testTotal = reports.reduce((count, report) => count + report.responses.filter((response) => response.isTestData).length, 0);
-  if (testTotal) cur.y += text(`${testTotal} respons terindikasi uji tetap dihitung dalam index.`, M, 9, { color: TONE.warning.text });
   cur.y += 6;
 
   const cardW = CONTENT_W;
@@ -213,7 +211,6 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
     const cat = categorize(idx);
     const secWithData = result.sections.filter((s) => s.index !== null);
     const statements = result.sections.flatMap((s) => s.statements).filter((s) => s.index !== null);
-    const testCount = rep.responses.filter((r) => r.isTestData).length;
     heading("Ringkasan");
     table({
       body: [
@@ -225,7 +222,6 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
           idx === null ? "-" : `${idx - KPI_TARGET >= 0 ? "+" : "-"}${formatIndex(Math.abs(idx - KPI_TARGET))}`,
         ],
         ["Responden", String(result.respondents)],
-        ...(testCount ? [["Respons terindikasi uji", `${testCount} (tetap dihitung dalam index)`]] : []),
         ["Bagian yang lolos KPI", `${secWithData.filter((s) => meetsKpi(s.index)).length} dari ${secWithData.length}`],
         ["Pernyataan di bawah 4,50", `${statements.filter((s) => !meetsKpi(s.index)).length} dari ${statements.length}`],
         [
@@ -237,9 +233,6 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
       ],
       columnStyles: { 0: { cellWidth: 62, textColor: INK2 } },
     });
-    if (testCount) {
-      cur.y += text("Penanda uji disimpulkan dari ID atau nama maskapai pada Google Sheets, bukan kolom penanda khusus.", M, 8.5, { color: MUTED });
-    }
   }
 
   function sectionsSection(rep: SegmentReport) {

@@ -17,7 +17,6 @@ export function SegmentView({
   responses,
   unmapped,
   hasFilters,
-  hasTestData,
 }: {
   meta: SegmentMeta;
   sheet: string;
@@ -25,7 +24,6 @@ export function SegmentView({
   responses: Response[];
   unmapped: string[];
   hasFilters: boolean;
-  hasTestData: boolean;
 }) {
   const result = useMemo(() => computeSurvey(sections, responses), [sections, responses]);
   const trend = useMemo(() => weeklyTrend(sections, responses), [sections, responses]);
@@ -68,7 +66,6 @@ export function SegmentView({
         <SummaryTiles meta={meta} result={result} nps={nps} className="min-w-0 lg:col-span-5" />
       </section>
 
-      {hasTestData && <ConditionalNote />}
       <SectionIndex result={result} />
 
       <section className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-12 lg:gap-6">
@@ -80,7 +77,6 @@ export function SegmentView({
         </div>
       </section>
 
-      {hasTestData && <ConditionalNote />}
       <StatementDetail result={result} />
 
       <section className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-12 lg:gap-6">
@@ -90,13 +86,5 @@ export function SegmentView({
 
       <Methodology label={meta.label} sheet={sheet} overall={result.overall.index} />
     </div>
-  );
-}
-
-function ConditionalNote() {
-  return (
-    <p role="note" className="rounded-xl border border-line-strong bg-sunken px-4 py-3 text-sm text-ink-2">
-      Pada data uji, butir Transit, Gangguan, dan Lost &amp; Found juga dijawab oleh responden yang tidak mengalami layanan tersebut. Index bagiannya belum otomatis mencerminkan pengalaman langsung.
-    </p>
   );
 }
