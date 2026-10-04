@@ -2,25 +2,27 @@ import type { Response } from "./scoring";
 import { SEGMENT_IDS, type Segment } from "./survey-config";
 
 export interface Filters {
-  month: string; // YYYY-MM
-  station: string;
-  service: string;
+  month: string;
+  airline: string;
+  flightType: string;
+  travelPurpose: string;
+  route: string;
 }
 
-export const EMPTY_FILTERS: Filters = { month: "", station: "", service: "" };
+export const EMPTY_FILTERS: Filters = { month: "", airline: "", flightType: "", travelPurpose: "", route: "" };
 
 export function applyFilters(responses: Response[], f: Filters) {
   return responses.filter(
     (r) =>
       (!f.month || r.date.startsWith(f.month)) &&
-      (!f.station || r.station === f.station) &&
-      (!f.service || r.services.includes(f.service)),
+      (!f.airline || r.airline === f.airline) &&
+      (!f.flightType || r.flightType === f.flightType) &&
+      (!f.travelPurpose || r.travelPurpose === f.travelPurpose) &&
+      (!f.route || r.route === f.route),
   );
 }
 
-export const hasFilters = (f: Filters) => Boolean(f.month || f.station || f.service);
-
-/* ── Konten laporan yang bisa dipilih saat berbagi / export ── */
+export const hasFilters = (f: Filters) => Boolean(f.month || f.airline || f.flightType || f.travelPurpose || f.route);
 
 export const CONTENT_OPTIONS = [
   { key: "ringkasan", label: "Ringkasan index" },
@@ -35,10 +37,13 @@ export const CONTENT_OPTIONS = [
 export type ContentKey = (typeof CONTENT_OPTIONS)[number]["key"];
 export const ALL_CONTENT: ContentKey[] = CONTENT_OPTIONS.map((c) => c.key);
 
-/* ── Cakupan data: dipakai link presentasi dan export ──
-   ?segmen=b2c,b2b&b2c.periode=2026-09&b2b.bandara=CGK&konten=ringkasan,bagian */
-
-const PARAM: Record<keyof Filters, string> = { month: "periode", station: "bandara", service: "layanan" };
+const PARAM: Record<keyof Filters, string> = {
+  month: "periode",
+  airline: "maskapai",
+  flightType: "jenis",
+  travelPurpose: "tujuan",
+  route: "rute",
+};
 
 export interface ReportScope {
   segments: Segment[];
@@ -68,12 +73,15 @@ export function parseScope(sp: Record<string, string | string[] | undefined> | U
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter((s): s is Segment => (SEGMENT_IDS as string[]).includes(s));
-  const filters = Object.fromEntries(
-    SEGMENT_IDS.map((seg) => [
-      seg,
-      { month: get(`${seg}.${PARAM.month}`), station: get(`${seg}.${PARAM.station}`), service: get(`${seg}.${PARAM.service}`) },
-    ]),
-  ) as Record<Segment, Filters>;
+  const filters: Record<Segment, Filters> = {
+    airline: {
+      month: get("airline.periode"),
+      airline: get("airline.maskapai"),
+      flightType: get("airline.jenis"),
+      travelPurpose: get("airline.tujuan"),
+      route: get("airline.rute"),
+    },
+  };
   const content = get("konten")
     .split(",")
     .map((s) => s.trim())

@@ -15,15 +15,17 @@ export function SegmentView({
   sheet,
   sections,
   responses,
-  airports,
   unmapped,
+  hasFilters,
+  hasTestData,
 }: {
   meta: SegmentMeta;
   sheet: string;
   sections: SectionDef[];
   responses: Response[];
-  airports: Record<string, string>;
   unmapped: string[];
+  hasFilters: boolean;
+  hasTestData: boolean;
 }) {
   const result = useMemo(() => computeSurvey(sections, responses), [sections, responses]);
   const trend = useMemo(() => weeklyTrend(sections, responses), [sections, responses]);
@@ -44,7 +46,7 @@ export function SegmentView({
     return (
       <div className="card grid place-items-center px-6 py-20 text-center">
         <p className="text-lg font-bold">Tidak ada respons untuk filter ini</p>
-        <p className="mt-1 text-sm text-muted">Coba ganti periode, bandara, atau jenis layanan.</p>
+        <p className="mt-1 text-sm text-muted">{hasFilters ? "Coba ubah atau hapus filter." : "Belum ada respons berskor di sheet."}</p>
       </div>
     );
   }
@@ -66,6 +68,7 @@ export function SegmentView({
         <SummaryTiles meta={meta} result={result} nps={nps} className="min-w-0 lg:col-span-5" />
       </section>
 
+      {hasTestData && <ConditionalNote />}
       <SectionIndex result={result} />
 
       <section className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-12 lg:gap-6">
@@ -77,18 +80,23 @@ export function SegmentView({
         </div>
       </section>
 
+      {hasTestData && <ConditionalNote />}
       <StatementDetail result={result} />
 
       <section className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-12 lg:gap-6">
-        <div className="min-w-0 lg:col-span-5">
-          <Profile meta={meta} responses={responses} airports={airports} />
-        </div>
-        <div className="min-w-0 lg:col-span-7">
-          <Voices responses={responses} airports={airports} />
-        </div>
+        <div className="min-w-0 lg:col-span-5"><Profile meta={meta} responses={responses} /></div>
+        <div className="min-w-0 lg:col-span-7"><Voices responses={responses} /></div>
       </section>
 
       <Methodology label={meta.label} sheet={sheet} overall={result.overall.index} />
     </div>
+  );
+}
+
+function ConditionalNote() {
+  return (
+    <p role="note" className="rounded-xl border border-line-strong bg-sunken px-4 py-3 text-sm text-ink-2">
+      Pada data uji, butir Transit, Gangguan, dan Lost &amp; Found juga dijawab oleh responden yang tidak mengalami layanan tersebut. Index bagiannya belum otomatis mencerminkan pengalaman langsung.
+    </p>
   );
 }

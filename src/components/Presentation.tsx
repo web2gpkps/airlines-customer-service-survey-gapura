@@ -12,12 +12,11 @@ import { Methodology, PriorityList } from "./Insights";
 import { LikertLegend, StatementList } from "./StatementDetail";
 import { HeroIndex, SummaryTiles } from "./Summary";
 import { TrendPlot } from "./TrendChart";
-import { StatusBadge, formatDate, formatDateTime, stationLabel, toneMark, toneText } from "./ui";
+import { StatusBadge, formatDate, formatDateTime, toneMark } from "./ui";
 import { useAutoRefresh } from "./useAutoRefresh";
 
 const AUTO_REFRESH_MS = 5 * 60_000;
 
-/** Laporan satu halaman untuk link yang dibagikan. Hanya bisa dibaca, plus export. */
 export function Presentation({ data, query }: { data: DashboardData; query: ReportScope }) {
   useAutoRefresh(AUTO_REFRESH_MS);
   const reports = useMemo(
@@ -26,6 +25,8 @@ export function Presentation({ data, query }: { data: DashboardData; query: Repo
   );
   const has = (k: ContentKey) => query.content.includes(k);
   const dates = reports.flatMap((r) => r.responses.map((x) => x.date)).filter(Boolean).sort();
+  const selectedResponses = reports.flatMap((report) => report.responses);
+  const testCount = selectedResponses.filter((response) => response.isTestData).length;
 
   return (
     <div className="min-h-dvh bg-page">
@@ -33,20 +34,7 @@ export function Presentation({ data, query }: { data: DashboardData; query: Repo
         <div className="mx-auto flex max-w-[1240px] items-center gap-3 px-4 py-2.5 sm:px-8">
           <Image src="/logo-gapura.webp" alt="Gapura" width={1052} height={569} className="h-7 w-auto" priority />
           <span className="h-6 w-px bg-line-strong" aria-hidden />
-          <span className="truncate text-sm font-bold tracking-tight text-ink">JOUMPA CSS Survey</span>
-          {reports.length > 1 && (
-            <nav className="ml-3 hidden gap-1 md:flex" aria-label="Segmen">
-              {reports.map((r) => (
-                <a
-                  key={r.seg}
-                  href={`#${r.seg}`}
-                  className="rounded-md px-2.5 py-1 text-sm font-semibold text-ink-2 hover:bg-sunken hover:text-ink"
-                >
-                  {r.meta.label}
-                </a>
-              ))}
-            </nav>
-          )}
+          <span className="truncate text-sm font-bold tracking-tight text-ink">Airline CSS Survey</span>
           <span className="ml-auto hidden text-xs text-muted lg:inline">Data per {formatDateTime(data.fetchedAt)}</span>
           <ExportMenu scope={query} />
         </div>
@@ -57,7 +45,7 @@ export function Presentation({ data, query }: { data: DashboardData; query: Repo
           <div>
             <p className="eyebrow">Laporan survei kepuasan pelanggan</p>
             <h1 className="mt-2 text-4xl leading-[0.95] font-extrabold tracking-tight text-ink sm:text-6xl">
-              JOUMPA CSS Survey
+              AIRLINE CSS SURVEY DASHBOARD
             </h1>
             <p className="mt-3 text-base text-ink-2 sm:text-lg">
               {dates.length > 0 && (
@@ -68,25 +56,23 @@ export function Presentation({ data, query }: { data: DashboardData; query: Repo
               Standar KPI {formatIndex(KPI_TARGET)} pada skala 1 sampai 5.
             </p>
           </div>
-          {reports.length > 1 && (
-            <div className="grid gap-4 md:grid-cols-2">
-              {reports.map((r) => (
-                <IndexCard key={r.seg} report={r} />
-              ))}
-            </div>
-          )}
         </section>
 
-        {reports.map((r) => (
-          <SegmentReportView key={r.seg} report={r} has={has} airports={data.airports} />
-        ))}
+        {testCount > 0 && (
+          <p role="note" className="rounded-xl border border-warn bg-warn-wash px-4 py-3 text-sm font-medium text-ink-2">
+            {testCount === selectedResponses.length
+              ? `Seluruh ${testCount} respons pada laporan ini adalah data uji. Index dan KPI belum mewakili hasil survei sebenarnya.`
+              : `${testCount} dari ${selectedResponses.length} respons pada laporan ini adalah data uji dan masih tercampur dalam perhitungan index dan KPI.`}
+          </p>
+        )}
+        {reports.map((r) => <SegmentReportView key={r.seg} report={r} has={has} hasTestData={r.responses.some((response) => response.isTestData)} />)}
 
         {has("standar") && (
           <section className="grid gap-5">
             <SectionTitle eyebrow="Referensi" title="Standar KPI dan cara menghitung index" />
             <Methodology
-              label={reports.length === 1 ? reports[0].meta.label : undefined}
-              overall={reports.length === 1 ? reports[0].result.overall.index : undefined}
+              label={reports[0]?.meta.label}
+              overall={reports[0]?.result.overall.index}
             />
           </section>
         )}
@@ -94,15 +80,13 @@ export function Presentation({ data, query }: { data: DashboardData; query: Repo
 
       <footer className="border-t border-line bg-card">
         <div className="mx-auto flex max-w-[1240px] flex-wrap justify-between gap-2 px-4 py-5 text-xs text-muted sm:px-8">
-          <span>PT Gapura Angkasa · Survei kepuasan pelanggan JOUMPA</span>
+          <span>PT Gapura Angkasa · Survei kepuasan pelanggan maskapai</span>
           <span>Data Google Sheets per {formatDateTime(data.fetchedAt)}</span>
         </div>
       </footer>
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
 
 function ExportMenu({ scope }: { scope: ReportScope }) {
   const [open, setOpen] = useState(false);
@@ -151,39 +135,14 @@ function SectionTitle({ eyebrow, title, description }: { eyebrow?: string; title
   );
 }
 
-function IndexCard({ report }: { report: SegmentReport }) {
-  const idx = report.result.overall.index;
-  const c = categorize(idx);
-  return (
-    <a href={`#${report.seg}`} className="card relative block overflow-hidden p-6 transition-shadow hover:shadow-md sm:p-7">
-      <div className={`absolute inset-x-0 top-0 h-1 ${c ? toneMark(c.tone) : "bg-line"}`} aria-hidden />
-      <div className="flex items-center gap-3">
-        <span className="grid h-8 min-w-11 place-items-center rounded-md bg-ink px-2 font-mono text-sm font-semibold text-white">
-          {report.meta.label}
-        </span>
-        <span className="font-bold text-ink">{report.meta.audience}</span>
-        <span className="num ml-auto text-sm text-muted">{report.responses.length} respons</span>
-      </div>
-      <p className="mt-6 flex flex-wrap items-end gap-x-4 leading-none">
-        <span className="text-6xl font-extrabold tracking-[-0.04em] text-ink sm:text-7xl">{formatIndex(idx)}</span>
-        <span className={`pb-2 text-xl font-bold ${c ? toneText(c.tone) : "text-muted"}`}>{c?.label ?? "Belum ada data"}</span>
-      </p>
-      <div className="mt-4">
-        <StatusBadge category={c} />
-      </div>
-      <p className="mt-4 text-xs text-muted">{report.filterText}</p>
-    </a>
-  );
-}
-
 function SegmentReportView({
   report,
   has,
-  airports,
+  hasTestData,
 }: {
   report: SegmentReport;
   has: (k: ContentKey) => boolean;
-  airports: Record<string, string>;
+  hasTestData: boolean;
 }) {
   const { meta, result, responses } = report;
   return (
@@ -212,7 +171,7 @@ function SegmentReportView({
           )}
 
           {has("bagian") && (
-            <Block title="Index per bagian layanan" description="Garis hitam menandai standar KPI 4,50.">
+            <Block title="Index per bagian layanan" description={hasTestData ? "Garis hitam menandai standar KPI 4,50. Pada data uji, butir Transit, Gangguan, dan Lost & Found juga dijawab oleh responden yang tidak mengalami layanan tersebut." : "Garis hitam menandai standar KPI 4,50."}>
               <SectionBars result={result} />
             </Block>
           )}
@@ -241,7 +200,7 @@ function SegmentReportView({
           )}
 
           {has("rincian") && (
-            <Block title="Rincian per pernyataan" description="Jumlah responden yang memilih skor 1 sampai 5 di tiap bagian.">
+            <Block title="Rincian per pernyataan" description={hasTestData ? "Jumlah pemilih skor 1 sampai 5. Pada data uji, jawaban untuk butir kondisional belum otomatis mencerminkan pengalaman langsung." : "Jumlah responden yang memilih skor 1 sampai 5 di tiap bagian."}>
               <LikertLegend />
               <div className="grid gap-4">
                 {result.sections.map((s) => {
@@ -264,7 +223,7 @@ function SegmentReportView({
             </Block>
           )}
 
-          {has("responden") && <Voices responses={responses} airports={airports} />}
+          {has("responden") && <Voices responses={responses} />}
         </>
       )}
     </section>
@@ -345,7 +304,7 @@ function SectionBars({ result }: { result: SurveyResult }) {
   );
 }
 
-function Voices({ responses, airports }: { responses: Response[]; airports: Record<string, string> }) {
+function Voices({ responses }: { responses: Response[] }) {
   const groups = [
     { title: "Yang perlu diperbaiki", items: pickComments(responses, "improve").slice(0, 6) },
     { title: "Yang paling berkesan", items: pickComments(responses, "best").slice(0, 6) },
@@ -367,7 +326,8 @@ function Voices({ responses, airports }: { responses: Response[]; airports: Reco
                     <p className="mt-1.5 text-base leading-relaxed text-ink">{text}</p>
                     <p className="mt-1.5 text-xs text-muted">
                       {r.date && formatDate(r.date)}
-                      {r.station && <> · {stationLabel(r.station, airports)}</>}
+                      {r.airline && <> · {r.airline}</>}
+                      {r.flight && <> · {r.flight}</>}
                     </p>
                   </li>
                 ))}

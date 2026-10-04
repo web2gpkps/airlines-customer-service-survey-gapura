@@ -15,11 +15,11 @@ export function StatusBadge({ category, size = "sm" }: { category: Category | nu
   const t = TONE[category.tone];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-semibold whitespace-nowrap ${t.wash} ${t.text} ${
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-lg font-semibold ${t.wash} ${t.text} ${
         size === "lg" ? "px-3.5 py-1.5 text-sm" : "px-2.5 py-1 text-xs"
       }`}
     >
-      <t.Icon aria-hidden className={size === "lg" ? "size-4" : "size-3.5"} strokeWidth={2.4} />
+      <t.Icon aria-hidden className={size === "lg" ? "size-4 shrink-0" : "size-3.5 shrink-0"} strokeWidth={2.4} />
       {category.status}
     </span>
   );
@@ -60,14 +60,13 @@ export function Segmented<T extends string>({
   label: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-lg border border-line bg-sunken p-0.5">
+    <div role="group" aria-label={label} className="flex flex-wrap rounded-lg border border-line bg-sunken p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
-          role="radio"
-          aria-checked={value === o.value}
+          aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`min-h-9 rounded-md px-3 text-xs font-semibold transition-colors ${
+          className={`min-h-11 rounded-md px-3 text-xs font-semibold transition-colors ${
             value === o.value ? "bg-card text-ink shadow-sm ring-1 ring-line" : "text-muted hover:text-ink"
           }`}
         >
@@ -78,4 +77,4 @@ export function Segmented<T extends string>({
   );
 }
 
-export { formatDate, formatDateTime, formatMonth, stationLabel } from "@/lib/format";
+export { formatDate, formatDateTime, formatMonth } from "@/lib/format";

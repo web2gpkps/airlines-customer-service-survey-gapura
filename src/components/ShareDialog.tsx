@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Check, Copy, ExternalLink, Mail, MessageCircle, Share2 } from "lucide-react";
 import { applyFilters, scopeToSearch, type ReportScope } from "@/lib/filters";
 import type { DashboardData } from "@/lib/sheets";
-import { SEGMENT_META } from "@/lib/survey-config";
 import { Modal, ScopePicker, useScopeState } from "./ScopePicker";
 
 export function ShareDialog({
@@ -29,7 +28,7 @@ export function ShareDialog({
   }, []);
 
   const url = `${origin}/presentasi?${scopeToSearch(scope)}`;
-  const title = `JOUMPA CSS Survey ${scope.segments.map((s) => SEGMENT_META[s].label).join(" & ")}`;
+  const title = "Airline CSS Survey";
   const message = `${title}: index kepuasan pelanggan terbaru.\n${url}`;
   const empty = scope.segments.every((s) => applyFilters(data.segments[s].responses, scope.filters[s]).length === 0);
 
@@ -45,7 +44,7 @@ export function ShareDialog({
   };
 
   const actionClass =
-    "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-line-strong bg-card px-3.5 text-sm font-semibold hover:border-ink-2";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-line-strong bg-card px-3.5 text-sm font-semibold hover:border-ink-2";
 
   return (
     <Modal
@@ -89,7 +88,7 @@ export function ShareDialog({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-semibold text-brand hover:bg-brand-wash sm:ml-auto"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-semibold text-brand hover:bg-brand-wash sm:ml-auto"
             >
               Buka laporan <ExternalLink aria-hidden className="size-4" />
             </a>

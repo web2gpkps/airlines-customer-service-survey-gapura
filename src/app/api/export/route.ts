@@ -2,7 +2,6 @@ import { buildExcel } from "@/lib/export/excel";
 import { buildPdf } from "@/lib/export/pdf";
 import { parseScope } from "@/lib/filters";
 import { getDashboardData } from "@/lib/sheets";
-import { SEGMENT_META } from "@/lib/survey-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +15,7 @@ export async function GET(request: Request) {
     const data = await getDashboardData();
     const body = format === "xlsx" ? await buildExcel(data, scope) : buildPdf(data, scope);
     const stamp = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Jakarta" }).format(new Date(data.fetchedAt));
-    const name = `JOUMPA-CSS-Survey-${scope.segments.map((s) => SEGMENT_META[s].label).join("-")}-${stamp}.${format}`;
+    const name = `Airline-CSS-Survey-${stamp}.${format}`;
     return new Response(new Uint8Array(body), {
       headers: {
         "Content-Type":

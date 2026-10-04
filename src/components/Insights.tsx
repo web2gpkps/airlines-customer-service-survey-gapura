@@ -16,7 +16,6 @@ import type { SegmentMeta } from "@/lib/survey-config";
 import { Distribution } from "./StatementDetail";
 import { CardHeader, Segmented, StatusBadge, formatDate, toneMark, toneText } from "./ui";
 
-/* ── Prioritas perbaikan ───────────────────────────────────────── */
 
 export function Priority({ result }: { result: SurveyResult }) {
   return (
@@ -71,7 +70,6 @@ export function PriorityList({ result, limit = 5 }: { result: SurveyResult; limi
   );
 }
 
-/* ── Profil responden ──────────────────────────────────────────── */
 
 function countBy(values: string[]) {
   const m = new Map<string, number>();
@@ -79,26 +77,29 @@ function countBy(values: string[]) {
   return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
-type ProfileKey = "service" | "channel" | "station";
+type ProfileKey = "airline" | "flightType" | "travelPurpose" | "route";
 
 export function Profile({
   meta,
   responses,
-  airports,
 }: {
   meta: SegmentMeta;
   responses: Response[];
-  airports: Record<string, string>;
 }) {
-  const [key, setKey] = useState<ProfileKey>("service");
+  const dimensions = ([
+    { value: "airline", label: "Maskapai" },
+    { value: "flightType", label: "Penerbangan" },
+    { value: "travelPurpose", label: "Tujuan" },
+    { value: "route", label: "Rute" },
+  ] as { value: ProfileKey; label: string }[]).filter(({ value }) => responses.some((r) => r[value]));
+  const [key, setKey] = useState<ProfileKey>("airline");
+  const selected = dimensions.some((d) => d.value === key) ? key : dimensions[0]?.value;
   const rows = useMemo(() => {
-    if (key === "service") return countBy(responses.flatMap((r) => r.services));
-    if (key === "channel") return countBy(responses.flatMap((r) => r.channels));
-    return countBy(responses.map((r) => r.station));
-  }, [key, responses]);
+    return selected ? countBy(responses.map((r) => r[selected])) : [];
+  }, [selected, responses]);
   const max = Math.max(1, ...rows.map((r) => r[1]));
-  const issues = responses.filter((r) => r.hadIssue).length;
-  const answeredIssue = responses.filter((r) => r.hadIssue !== null).length;
+
+  if (!dimensions.length) return null;
 
   return (
     <section className="card h-full">
@@ -108,13 +109,9 @@ export function Profile({
         action={
           <Segmented
             label="Dimensi profil"
-            value={key}
+            value={selected}
             onChange={setKey}
-            options={[
-              { value: "service", label: "Layanan" },
-              { value: "channel", label: "Kanal" },
-              { value: "station", label: "Bandara" },
-            ]}
+            options={dimensions}
           />
         }
       />
@@ -122,16 +119,7 @@ export function Profile({
         {rows.slice(0, 8).map(([label, count]) => (
           <li key={label}>
             <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="min-w-0 truncate text-ink" title={label}>
-                {key === "station" ? (
-                  <>
-                    <b className="font-mono">{label}</b>
-                    {airports[label] && <span className="text-muted"> · {airports[label].split(",")[0]}</span>}
-                  </>
-                ) : (
-                  label
-                )}
-              </span>
+              <span className="min-w-0 truncate text-ink" title={label}>{label}</span>
               <span className="num shrink-0 text-ink-2">
                 <b className="text-ink">{count}</b>{" "}
                 <span className="text-muted">({Math.round((count / responses.length) * 100)}%)</span>
@@ -145,22 +133,14 @@ export function Profile({
         {rows.length > 8 && <li className="text-xs text-muted">+{rows.length - 8} lainnya</li>}
         {rows.length === 0 && <li className="text-sm text-muted">Kolom ini kosong di sheet.</li>}
       </ul>
-      {answeredIssue > 0 && (
-        <p className="mx-5 mb-5 rounded-lg bg-sunken px-3 py-2.5 text-sm text-ink-2 sm:mx-6">
-          <b className="num text-ink">{issues}</b> dari <span className="num">{answeredIssue}</span> responden (
-          {Math.round((issues / answeredIssue) * 100)}%) mengaku mengalami kendala. Pertanyaan soal penanganan kendala
-          hanya dijawab oleh mereka.
-        </p>
-      )}
     </section>
   );
 }
 
-/* ── Suara pelanggan ───────────────────────────────────────────── */
 
 type VoiceKey = CommentKey;
 
-export function Voices({ responses, airports }: { responses: Response[]; airports: Record<string, string> }) {
+export function Voices({ responses }: { responses: Response[] }) {
   const [key, setKey] = useState<VoiceKey>("improve");
   const [showAll, setShowAll] = useState(false);
   const items = useMemo(() => pickComments(responses, key), [responses, key]);
@@ -197,15 +177,8 @@ export function Voices({ responses, airports }: { responses: Response[]; airport
               <p className="mt-1.5 text-sm leading-relaxed text-ink">{text}</p>
               <p className="mt-2 text-xs text-muted">
                 {formatDate(r.date)}
-                {r.station && (
-                  <>
-                    {" · "}
-                    <span className="font-mono font-semibold text-ink-2" title={airports[r.station]}>
-                      {r.station}
-                    </span>
-                  </>
-                )}
-                {r.services[0] && <> · {r.services[0]}</>}
+                {r.airline && <> · {r.airline}</>}
+                {r.flight && <> · {r.flight}</>}
               </p>
             </li>
           ))}
@@ -223,7 +196,6 @@ export function Voices({ responses, airports }: { responses: Response[]; airport
   );
 }
 
-/* ── Standar & metodologi ──────────────────────────────────────── */
 
 export function Methodology({ label, sheet, overall }: { label?: string; sheet?: string; overall?: number | null }) {
   const current = categorize(overall ?? null);
@@ -235,8 +207,7 @@ export function Methodology({ label, sheet, overall }: { label?: string; sheet?:
           title="Arti angka index"
           description={
             <>
-              Standar minimum index kepuasan JOUMPA adalah <b className="text-ink">4,50</b> pada skala 1 sampai 5. Angka ini
-              berlaku untuk survei B2C maupun B2B.
+              Standar minimum index kepuasan Airline CSS adalah <b className="text-ink">4,50</b> pada skala 1 sampai 5.
             </>
           }
         />
@@ -279,9 +250,6 @@ export function Methodology({ label, sheet, overall }: { label?: string; sheet?:
                     </td>
                     <td className="hidden px-5 py-3 sm:table-cell sm:px-6">
                       <StatusBadge category={c} />
-                      {c.tone === "warning" && (
-                        <span className="mt-1 block text-xs text-muted">Belum memenuhi standar</span>
-                      )}
                     </td>
                   </tr>
                 );

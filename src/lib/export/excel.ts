@@ -13,14 +13,13 @@ const BRAND_WASH = "FFE8F4ED";
 const STATUS_FILL = { good: "FFE6F4EA", warning: "FFFDF1D8", critical: "FFFDECEB" } as const;
 const STATUS_TEXT = { good: "FF0B7A3B", warning: "FF8A5300", critical: "FFB42318" } as const;
 
-/** 0 → "A", 26 → "AA". */
 function colLetter(i: number): string {
   let s = "";
   for (let n = i + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s;
   return s;
 }
 
-/** Sel teks yang isinya angka murni disimpan sebagai angka, seperti di Google Sheets. */
+/** Skor dari Sheets disimpan numerik agar rumus COUNTIF menghitungnya. */
 function cellValue(raw: string | undefined): string | number | null {
   if (raw === undefined || raw === "") return null;
   if (/^-?\d{1,10}(\.\d+)?$/.test(raw)) return Number(raw);
@@ -31,10 +30,10 @@ const quoteSheet = (name: string) => `'${name.replace(/'/g, "''")}'`;
 
 export async function buildExcel(data: ServerDashboardData, scope: ReportScope): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "JOUMPA CSS Survey Dashboard";
+  wb.creator = "AIRLINE CSS SURVEY DASHBOARD";
   wb.created = new Date(data.fetchedAt);
 
-  // 1. Salinan sheet Tally (header & urutan kolom sama persis, baris sesuai filter)
+  // Header dan kolom sumber dipertahankan agar rumus rekap merujuk data yang sama.
   const tallyRowCount = new Map<string, number>();
   for (const seg of scope.segments) {
     const segment = data.segments[seg];
@@ -55,12 +54,10 @@ export async function buildExcel(data: ServerDashboardData, scope: ReportScope):
     tallyRowCount.set(seg, rows.length);
   }
 
-  // 2. Rekap dengan rumus yang membaca sheet Tally di atas
   for (const seg of scope.segments) {
     addRecapSheet(wb, data.segments[seg], data, scope, seg, tallyRowCount.get(seg) ?? 0);
   }
 
-  // 3. Standar KPI
   addStandardSheet(wb);
 
   return Buffer.from(await wb.xlsx.writeBuffer());
@@ -75,8 +72,13 @@ function addRecapSheet(
   rowCount: number,
 ) {
   const report = buildSegmentReport(data, seg, scope.filters[seg]);
-  const { meta, result } = report;
-  const ws = wb.addWorksheet(`Rekap ${meta.label}`, { views: [{ state: "frozen", ySplit: 10 }] });
+  const { result } = report;
+  const ws = wb.addWorksheet("Rekap Airline", { views: [{ state: "frozen", ySplit: 10 }] });
+  const statementCount = result.sections.reduce((sum, section) => sum + section.statements.length, 0);
+  const scoreColumns = segment.statementCols.flat();
+  if (segment.statementCols.length !== statementCount || segment.statementCols.some((cols) => cols.length !== 1) || new Set(scoreColumns).size !== statementCount || scoreColumns.some((col) => col < 0 || col >= segment.headers.length)) {
+    throw new Error("Kolom skor Airline tidak sesuai dengan pernyataan pada rekap; ekspor Excel dibatalkan.");
+  }
   ws.properties.defaultRowHeight = 16;
   ws.columns = [
     { width: 6 },
@@ -88,7 +90,7 @@ function addRecapSheet(
     { width: 12 },
     { width: 11 },
     { width: 18 },
-    { width: 24 },
+    { width: 48 },
   ];
 
   const src = quoteSheet(segment.sheet);
@@ -97,14 +99,14 @@ function addRecapSheet(
 
   const font = (extra: Partial<ExcelJS.Font> = {}): Partial<ExcelJS.Font> => ({ name: FONT, size: 10, ...extra });
 
-  ws.getCell("A1").value = `REKAP INDEX KEPUASAN ${meta.label} (${meta.audience.toUpperCase()})`;
+  ws.getCell("A1").value = "REKAP INDEX KEPUASAN AIRLINE";
   ws.getCell("A1").font = font({ size: 14, bold: true });
   ws.getCell("A2").value =
     `Dihitung dengan rumus dari sheet "${segment.sheet}" di file ini. Filter: ${report.filterText}. ` +
     `Data Google Sheets per ${formatDateTime(data.fetchedAt)}.`;
   ws.getCell("A2").font = font({ color: { argb: MUTED } });
 
-  // Ringkasan (B4 = standar KPI, dipakai semua rumus kategori/status)
+  // C4 menjadi acuan rumus kategori dan status pada seluruh baris rekap.
   const kpiCell = "$C$4";
   const summary: [string, ExcelJS.CellValue, string?][] = [
     ["Standar KPI", KPI_TARGET, "0.00"],
@@ -112,6 +114,7 @@ function addRecapSheet(
     ["Kategori", null],
     ["Status", null],
     ["Jumlah responden", { formula: `COUNTA(${src}!$A$2:$A$${last})`, result: rowCount }],
+    ["Terindikasi data uji", report.responses.filter((response) => response.isTestData).length],
   ];
   summary.forEach(([label, value, fmt], i) => {
     const r = 4 + i;
@@ -125,9 +128,9 @@ function addRecapSheet(
     if (fmt) cell.numFmt = fmt;
   });
   ws.getCell("C4").font = font({ bold: true, color: { argb: "FF0000FF" } });
-  ws.getCell("C4").note = "Standar minimum index kepuasan JOUMPA (skala 1-5), ditetapkan manajemen. Ubah angka ini bila standar berubah.";
+  ws.getCell("C4").note = "Standar minimum index kepuasan Airline (skala Likert 1-5).";
+  ws.getCell("C9").note = "Dihitung saat ekspor dari pola ID DUM dan nama maskapai Tester. Nilai ini tidak berubah otomatis jika salinan Tally diedit.";
 
-  // Header tabel
   const HEAD = 10;
   const headers = ["No", "Bagian", "Pernyataan", "1", "2", "3", "4", "5", "n", "Total Skor", "Skor Maksimum", "Index (1-5)", "Kategori", "Status KPI"];
   ws.getRow(HEAD).values = headers;
@@ -143,7 +146,7 @@ function addRecapSheet(
     `IF(ROUND(L${r},2)<=3,"Cukup / Netral",IF(ROUND(L${r},2)<${kpiCell},"Puas","Sangat Puas")))))`;
   const statusFormula = (r: number) =>
     `IF(L${r}="","",IF(ROUND(L${r},2)>=${kpiCell},"Memenuhi Standar KPI",` +
-    `IF(ROUND(L${r},2)>3,"Perlu Peningkatan","Belum Memenuhi Standar")))`;
+    `IF(ROUND(L${r},2)>3,"Perlu Peningkatan / Belum Memenuhi Standar","Belum Memenuhi Standar")))`;
 
   const writeCalcCells = (r: number, t: Tally) => {
     const cat = categorize(t.index);
@@ -171,19 +174,13 @@ function addRecapSheet(
     r++;
     const first = r;
     for (const st of sec.statements) {
-      const cols = segment.statementCols[statementIndex++] ?? [];
+      const col = segment.statementCols[statementIndex++]?.[0];
+      if (col === undefined) throw new Error(`Kolom skor untuk pernyataan ${st.no} tidak ditemukan.`);
       ws.getCell(`A${r}`).value = st.no;
       ws.getCell(`B${r}`).value = sec.code;
       ws.getCell(`C${r}`).value = st.text;
       for (let k = 1; k <= 5; k++) {
-        // Ambil kolom pertama yang terisi (form B2B punya dua kolom untuk satu pernyataan)
-        const terms = cols.map((c, j) => {
-          const blanks = cols.slice(0, j).map((p) => `(${range(p)}="")*`).join("");
-          return `${blanks}(LEFT(${range(c)},1)="${k}")`;
-        });
-        ws.getCell(r, 3 + k).value = cols.length
-          ? { formula: `SUMPRODUCT(${terms.join("+")})`, result: st.counts[k - 1] }
-          : 0;
+        ws.getCell(r, 3 + k).value = { formula: `COUNTIF(${range(col)},${k})`, result: st.counts[k - 1] };
       }
       writeCalcCells(r, st);
       r++;
@@ -204,7 +201,6 @@ function addRecapSheet(
     r += 2;
   }
 
-  // Index keseluruhan = gabungan semua subtotal
   const overall = r;
   ws.getCell(`A${overall}`).value = "INDEX KESELURUHAN";
   ws.mergeCells(`A${overall}:C${overall}`);
@@ -227,7 +223,6 @@ function addRecapSheet(
   ws.getCell("C6").value = { formula: `M${overall}`, result: overallCat?.label ?? "" };
   ws.getCell("C7").value = { formula: `N${overall}`, result: overallCat?.status ?? "" };
 
-  // Font, perataan, dan pewarnaan status
   for (let row = HEAD + 1; row <= overall; row++) {
     ws.getRow(row).eachCell({ includeEmpty: false }, (c) => {
       c.font = { ...font(), ...c.font, name: FONT, size: 10 };
@@ -239,9 +234,9 @@ function addRecapSheet(
   ws.addConditionalFormatting({
     ref: `${statusRef} C7`,
     rules: (["good", "warning", "critical"] as const).map((tone, priority) => ({
-      type: "containsText",
-      operator: "containsText",
-      text: { good: "Memenuhi Standar KPI", warning: "Perlu Peningkatan", critical: "Belum Memenuhi" }[tone],
+      type: "cellIs",
+      operator: "equal",
+      formulae: [`"${{ good: "Memenuhi Standar KPI", warning: "Perlu Peningkatan / Belum Memenuhi Standar", critical: "Belum Memenuhi Standar" }[tone]}"`],
       priority: priority + 1,
       style: {
         fill: { type: "pattern", pattern: "solid", bgColor: { argb: STATUS_FILL[tone] } },
@@ -251,19 +246,19 @@ function addRecapSheet(
   });
 
   ws.getCell(`A${overall + 2}`).value =
-    "Catatan: skor 1-5 dihitung dari karakter pertama sel di sheet Tally (contoh \"5 SP\" = 5). " +
-    "Sel kosong tidak dihitung. Kategori dan status memakai index yang dibulatkan 2 desimal dan standar KPI di sel C4.";
+    "Catatan: hanya skor bulat 1-5 yang dihitung; sel kosong diabaikan. Kategori dan status memakai index yang dibulatkan 2 desimal. " +
+    "Jumlah data uji ditentukan saat ekspor dari ID/nama maskapai pada sumber dan tidak berubah otomatis saat Tally diedit; respons tersebut tetap dihitung.";
   ws.getCell(`A${overall + 2}`).font = font({ italic: true, color: { argb: MUTED } });
 }
 
 function addStandardSheet(wb: ExcelJS.Workbook) {
   const ws = wb.addWorksheet("Standar KPI");
-  ws.columns = [{ width: 18 }, { width: 22 }, { width: 44 }];
+  ws.columns = [{ width: 18 }, { width: 22 }, { width: 50 }];
   const f = (extra: Partial<ExcelJS.Font> = {}): Partial<ExcelJS.Font> => ({ name: FONT, size: 10, ...extra });
 
-  ws.getCell("A1").value = "STANDAR INDEX KEPUASAN JOUMPA";
+  ws.getCell("A1").value = "STANDAR INDEX KEPUASAN AIRLINE";
   ws.getCell("A1").font = f({ size: 14, bold: true });
-  ws.getCell("A2").value = "Standar minimum index kepuasan ditetapkan 4,50 pada skala Likert 1-5, berlaku untuk B2C dan B2B.";
+  ws.getCell("A2").value = "Standar minimum index kepuasan ditetapkan 4,50 pada skala Likert 1-5.";
   ws.getCell("A2").font = f({ color: { argb: MUTED } });
 
   ws.getRow(4).values = ["Rentang Index", "Kategori", "Status"];

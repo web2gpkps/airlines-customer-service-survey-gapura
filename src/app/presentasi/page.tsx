@@ -7,7 +7,7 @@ import { getDashboardData, toClientData } from "@/lib/sheets";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Laporan JOUMPA CSS Survey",
+  title: "Laporan Airline CSS Survey",
   robots: { index: false, follow: false },
 };
 

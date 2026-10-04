@@ -4,11 +4,10 @@ import { getDashboardData, toClientData } from "@/lib/sheets";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const { tab } = await searchParams;
+export default async function Page() {
   try {
     const data = await getDashboardData();
-    return <Dashboard data={toClientData(data)} initialTab={tab === "b2b" ? "b2b" : "b2c"} />;
+    return <Dashboard data={toClientData(data)} />;
   } catch (err) {
     return <LoadError message={err instanceof Error ? err.message : String(err)} />;
   }

@@ -4,10 +4,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { CONTENT_OPTIONS, applyFilters, type ContentKey, type Filters, type ReportScope } from "@/lib/filters";
 import type { DashboardData } from "@/lib/sheets";
-import { SEGMENT_IDS, SEGMENT_META, type Segment } from "@/lib/survey-config";
-import { Segmented, formatMonth, stationLabel } from "./ui";
+import { formatMonth } from "./ui";
 
-/** Pilihan segmen, filter per segmen, dan konten laporan. */
 export function ScopePicker({
   data,
   value,
@@ -19,10 +17,8 @@ export function ScopePicker({
   onChange: (next: ReportScope) => void;
   contentNote?: string;
 }) {
-  const scopeKey = value.segments.length === 2 ? "all" : value.segments[0];
-
-  const setFilter = (seg: Segment, key: keyof Filters, v: string) =>
-    onChange({ ...value, filters: { ...value.filters, [seg]: { ...value.filters[seg], [key]: v } } });
+  const setFilter = (key: keyof Filters, v: string) =>
+    onChange({ ...value, filters: { airline: { ...value.filters.airline, [key]: v } } });
 
   const toggleContent = (key: ContentKey) => {
     const on = value.content.includes(key);
@@ -35,29 +31,7 @@ export function ScopePicker({
 
   return (
     <div className="grid gap-5">
-      <div className="grid gap-2">
-        <span className="eyebrow">Segmen</span>
-        <Segmented
-          label="Segmen"
-          value={scopeKey}
-          onChange={(v) => onChange({ ...value, segments: v === "all" ? [...SEGMENT_IDS] : [v as Segment] })}
-          options={[
-            { value: "b2c", label: "B2C saja" },
-            { value: "b2b", label: "B2B saja" },
-            { value: "all", label: "B2C dan B2B" },
-          ]}
-        />
-      </div>
-
-      {value.segments.map((seg) => (
-        <SegmentFilters
-          key={seg}
-          seg={seg}
-          data={data}
-          filters={value.filters[seg]}
-          onChange={(k, v) => setFilter(seg, k, v)}
-        />
-      ))}
+      <SegmentFilters data={data} filters={value.filters.airline} onChange={setFilter} />
 
       <fieldset className="grid gap-2">
         <legend className="eyebrow mb-2">Konten</legend>
@@ -65,7 +39,7 @@ export function ScopePicker({
           {CONTENT_OPTIONS.map((c) => {
             const checked = value.content.includes(c.key);
             return (
-              <label key={c.key} className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm text-ink">
+              <label key={c.key} className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm text-ink">
                 <input
                   type="checkbox"
                   checked={checked}
@@ -85,22 +59,22 @@ export function ScopePicker({
 }
 
 function SegmentFilters({
-  seg,
   data,
   filters,
   onChange,
 }: {
-  seg: Segment;
   data: DashboardData;
   filters: Filters;
   onChange: (key: keyof Filters, v: string) => void;
 }) {
-  const all = data.segments[seg].responses;
+  const all = data.segments.airline.responses;
   const options = useMemo(
     () => ({
       months: [...new Set(all.map((r) => r.date.slice(0, 7)))].filter(Boolean).sort().reverse(),
-      stations: [...new Set(all.map((r) => r.station))].filter(Boolean).sort(),
-      services: [...new Set(all.flatMap((r) => r.services))].sort(),
+      airlines: [...new Set(all.map((r) => r.airline))].filter(Boolean).sort(),
+      flightTypes: [...new Set(all.map((r) => r.flightType))].filter(Boolean).sort(),
+      travelPurposes: [...new Set(all.map((r) => r.travelPurpose))].filter(Boolean).sort(),
+      routes: [...new Set(all.map((r) => r.route))].filter(Boolean).sort(),
     }),
     [all],
   );
@@ -108,14 +82,14 @@ function SegmentFilters({
 
   return (
     <fieldset className="rounded-xl border border-line bg-sunken p-3.5">
-      <legend className="sr-only">Filter {SEGMENT_META[seg].label}</legend>
+      <legend className="sr-only">Filter laporan Airline</legend>
       <div className="mb-2.5 flex items-center justify-between gap-3">
         <span className="text-sm font-bold text-ink">
-          {SEGMENT_META[seg].label} · {SEGMENT_META[seg].audience}
+          Data laporan
         </span>
         <span className={`num text-xs ${count ? "text-muted" : "font-semibold text-crit"}`}>{count} respons</span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-2">
         <MiniSelect
           label="Periode"
           value={filters.month}
@@ -123,20 +97,10 @@ function SegmentFilters({
           allLabel="Semua periode"
           options={options.months.map((m) => ({ value: m, label: formatMonth(m) }))}
         />
-        <MiniSelect
-          label="Bandara"
-          value={filters.station}
-          onChange={(v) => onChange("station", v)}
-          allLabel="Semua bandara"
-          options={options.stations.map((s) => ({ value: s, label: stationLabel(s, data.airports) }))}
-        />
-        <MiniSelect
-          label="Jenis layanan"
-          value={filters.service}
-          onChange={(v) => onChange("service", v)}
-          allLabel="Semua layanan"
-          options={options.services.map((s) => ({ value: s, label: s }))}
-        />
+        {options.airlines.length > 0 && <MiniSelect label="Maskapai" value={filters.airline} onChange={(v) => onChange("airline", v)} allLabel="Semua maskapai" options={options.airlines.map((s) => ({ value: s, label: s }))} />}
+        {options.flightTypes.length > 0 && <MiniSelect label="Jenis penerbangan" value={filters.flightType} onChange={(v) => onChange("flightType", v)} allLabel="Semua jenis" options={options.flightTypes.map((s) => ({ value: s, label: s }))} />}
+        {options.travelPurposes.length > 0 && <MiniSelect label="Tujuan perjalanan" value={filters.travelPurpose} onChange={(v) => onChange("travelPurpose", v)} allLabel="Semua tujuan" options={options.travelPurposes.map((s) => ({ value: s, label: s }))} />}
+        {options.routes.length > 0 && <MiniSelect label="Rute" value={filters.route} onChange={(v) => onChange("route", v)} allLabel="Semua rute" options={options.routes.map((s) => ({ value: s, label: s }))} />}
       </div>
     </fieldset>
   );
@@ -158,7 +122,7 @@ function MiniSelect({
   return (
     <label className="flex min-w-0 flex-col gap-1">
       <span className="text-[11px] font-medium text-muted">{label}</span>
-      <select className="select !min-h-9 !py-1.5 !text-[13px]" value={value} onChange={(e) => onChange(e.target.value)}>
+      <select className="select !min-h-11 !py-1.5 !text-[13px]" value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">{allLabel}</option>
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -170,7 +134,6 @@ function MiniSelect({
   );
 }
 
-/** Kerangka dialog modal berbasis <dialog>. */
 export function Modal({
   open,
   onClose,
@@ -210,7 +173,7 @@ export function Modal({
         <button
           onClick={onClose}
           aria-label="Tutup"
-          className="grid size-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-sunken hover:text-ink"
+          className="grid size-11 shrink-0 place-items-center rounded-lg text-muted hover:bg-sunken hover:text-ink"
         >
           <X className="size-5" />
         </button>
@@ -221,7 +184,6 @@ export function Modal({
   );
 }
 
-/** State cakupan yang di-reset tiap kali dialog dibuka. */
 export function useScopeState(open: boolean, initial: () => ReportScope) {
   const [scope, setScope] = useState<ReportScope>(initial);
   const init = useRef(initial);

@@ -1,5 +1,4 @@
 import { applyFilters, type Filters } from "./filters";
-import { describeFilters } from "./format";
 import {
   computeNps,
   computeSurvey,
@@ -47,11 +46,18 @@ export interface SegmentReport {
 export function buildSegmentReport(data: DashboardData, seg: Segment, filters: Filters): SegmentReport {
   const segment = data.segments[seg];
   const responses = applyFilters(segment.responses, filters);
+  const filterText = [
+    filters.month && `Periode ${filters.month}`,
+    filters.airline && `Maskapai ${filters.airline}`,
+    filters.flightType && `Jenis penerbangan ${filters.flightType}`,
+    filters.travelPurpose && `Tujuan perjalanan ${filters.travelPurpose}`,
+    filters.route && `Rute ${filters.route}`,
+  ].filter(Boolean).join(" · ") || "Semua respons";
   return {
     seg,
     meta: SEGMENT_META[seg],
     sheet: segment.sheet,
-    filterText: describeFilters(filters, data.airports),
+    filterText,
     responses,
     result: computeSurvey(segment.sections, responses),
     nps: computeNps(responses),

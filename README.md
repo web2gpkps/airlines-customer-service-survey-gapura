@@ -1,80 +1,44 @@
-# JOUMPA CSS Survey Dashboard
+# AIRLINE CSS SURVEY DASHBOARD
 
-Dashboard index kepuasan pelanggan JOUMPA (PT Gapura Angkasa) untuk dua segmen: B2C (penumpang) dan B2B (mitra bisnis). Semua angka dihitung langsung dari Google Sheets setiap kali halaman dimuat.
+Dashboard indeks kepuasan pelanggan maskapai dari tab `CSS Airline Tally` di [Google Sheets](https://docs.google.com/spreadsheets/d/1co2q6Xt0co2yoOyLN_vFE1FtWFlqyECdRGqMMVFNKfg/edit). Aplikasi membaca data dengan service account Google yang hanya memiliki akses baca. Judul halaman untuk Vercel: **Airline Customer CSS Survey**.
 
 ## Menjalankan
 
-```bash
-npm install
-npm run dev      # http://localhost:3000
-npm run build && npm start   # mode produksi
-```
+1. Salin `.env.example` menjadi `.env`.
+2. Isi `GOOGLE_SERVICE_ACCOUNT` dengan service account yang sudah diberi akses Viewer ke spreadsheet. `GOOGLE_SHEET_ID` sudah menunjuk ke sheet Airline.
+3. Jalankan `npm ci`, lalu `npm run dev`.
 
-| Halaman | Isi |
-|---|---|
-| `/` | Dashboard. Tab B2C terbuka duluan, tab B2B lewat `/?tab=b2b`. |
-| `/presentasi` | Laporan satu halaman yang hanya bisa dibaca. Link-nya dibuat dari tombol **Bagikan**. |
-| `/api/export` | Unduh PDF (`format=pdf`) atau Excel (`format=xlsx`). |
+Periksa dengan `npm run typecheck` dan `npm run build` sebelum memasang di Vercel. Di Vercel, isi `GOOGLE_SERVICE_ACCOUNT` dan `GOOGLE_SHEET_ID` sebagai environment variables. Judul halaman sudah diatur menjadi **Airline Customer CSS Survey**.
 
-Tombol **Bagikan** dan **Export** membuka pilihan yang sama: segmen (B2C, B2B, atau keduanya), filter periode, bandara, dan jenis layanan per segmen, lalu konten yang disertakan. Pilihan itu tersimpan di URL, misalnya:
+## Data dan perhitungan
 
-```
-/presentasi?segmen=b2c,b2b&b2b.bandara=CGK&konten=ringkasan,bagian
-/api/export?format=xlsx&segmen=b2c&b2c.periode=2026-09
-```
+Satu tab sumber berisi identitas respons, waktu pengisian, profil perjalanan, 38 pertanyaan Likert, satu pertanyaan rekomendasi 0–10, dan tiga kolom komentar. Pertanyaan Likert dikelompokkan menjadi check-in, bagasi dan biaya, boarding, transit, gangguan dan komplain, Lost & Found, keamanan, serta kepuasan dan loyalitas. Pengelompokan ini didasarkan pada urutan dan isi header karena sheet tidak memiliki nama bagian tersendiri. Header baru yang belum dikenal tetap dihitung dalam **Pernyataan lainnya**.
 
-Dashboard mengambil ulang data tiap 2 menit selama halaman terbuka, laporan tiap 5 menit. Server menyimpan hasil ambil data selama 60 detik; tombol **Muat ulang** melewati simpanan itu.
+Indeks adalah rata-rata semua jawaban Likert 1–5 yang terisi, dibulatkan dua desimal sebelum kategori ditentukan. Nilai kosong tidak ikut dalam pembagi. KPI minimum **4,50** berlaku untuk indeks keseluruhan, bagian, dan pernyataan.
 
-## Isi file export
-
-**Excel**
-
-- Sheet `B2C CSS Tally` / `B2B CSS Tally`: salinan sheet Google dengan header, urutan kolom, dan isi sel yang sama. Barisnya hanya yang lolos filter.
-- Sheet `Rekap B2C` / `Rekap B2B`: jumlah skor 1 sampai 5, n, total skor, skor maksimum, index, kategori, dan status per pernyataan, per bagian, dan keseluruhan. Semua angka memakai rumus yang membaca sheet Tally di file yang sama, jadi ikut berubah kalau datanya diedit. Standar KPI ada di sel `C4`.
-- Sheet `Standar KPI`: tabel interpretasi dan cara hitung.
-
-**PDF**: laporan A4 berisi halaman judul, lalu bagian yang dipilih untuk tiap segmen, dan standar KPI di akhir.
-
-## Sumber data
-
-| Segmen | Sheet |
-|---|---|
-| B2C | `B2C CSS Tally` (bisa diganti dengan env `SHEET_B2C`) |
-| B2B | `B2B CSS Tally` (bisa diganti dengan env `SHEET_B2B`) |
-
-Nama bandara diambil dari sheet `Helper_Kode_Cabang` kalau ada. Kalau tidak ada, dashboard menampilkan kodenya saja.
-
-Kredensial dibaca dari `.env` (`GOOGLE_SERVICE_ACCOUNT` dan `GOOGLE_SHEET_ID`), contohnya ada di `.env.example`. Spreadsheet harus dibagikan (Viewer) ke `client_email` service account.
-
-### Cara pernyataan dikenali
-
-Daftar pernyataan, urutannya, dan jumlahnya dibaca dari header sheet:
-
-- header matriks Tally seperti `Pernyataan / Aspek yang Dinilai [teks]`, atau
-- header bernomor seperti `3. teks` yang minimal 80% isinya skor 1 sampai 5.
-
-Kalau satu pernyataan muncul di dua kolom (form B2B pernah berganti versi), kedua kolom digabung. Pertanyaan NPS tidak ikut dihitung sebagai skor Likert.
-
-Sheet Tally tidak menyimpan nama bagian kuesioner (B. Reservasi, C. Keberangkatan, dan seterusnya). Nama bagian itu ada di `src/lib/survey-config.ts` dan dipakai untuk mengelompokkan pernyataan saja. Pernyataan baru yang belum terdaftar di sana tetap dihitung dan muncul di kelompok "Pernyataan lainnya".
-
-## Perhitungan
-
-```
-Index = (Total skor ÷ Skor maksimum) × 5
-Total skor    = jumlah semua skor 1–5 yang diberikan
-Skor maksimum = jumlah jawaban × 5
-```
-
-Index bagian dan index keseluruhan memakai total skor semua pernyataan di dalamnya. Pertanyaan yang tidak dijawab tidak dihitung. Index dibulatkan ke 2 desimal sebelum kategorinya ditentukan.
-
-Standar minimum (KPI) adalah 4,50 pada skala 1 sampai 5.
-
-| Rentang index | Kategori | Status |
+| Indeks | Kategori | Status |
 |---|---|---|
 | ≤ 1,00 | Sangat tidak puas | Belum memenuhi standar |
-| 1,01 – 2,00 | Tidak puas | Belum memenuhi standar |
-| 2,01 – 3,00 | Cukup / netral | Belum memenuhi standar |
-| 3,01 – 4,49 | Puas | Perlu peningkatan / belum memenuhi standar |
-| 4,50 – 5,00 | Sangat puas | Memenuhi standar KPI |
+| 1,01–2,00 | Tidak puas | Belum memenuhi standar |
+| 2,01–3,00 | Cukup / netral | Belum memenuhi standar |
+| 3,01–4,49 | Puas | Perlu peningkatan / belum memenuhi standar |
+| 4,50–5,00 | Sangat puas | Memenuhi standar KPI |
 
-Aturan ini ada di `src/lib/scoring.ts`.
+NPS dihitung terpisah dari indeks Likert. Filter memakai waktu `Submitted at`, maskapai, jenis penerbangan, tujuan perjalanan, dan rute bila tersedia. Bagian yang tidak punya sumber data disembunyikan.
+
+## Arah tampilan
+
+Tampilan mengikuti dashboard Joumpa milik Gapura. Hijau dan lime berasal dari logo Gapura; warna status membantu membedakan hasil KPI dan selalu disertai teks. Plus Jakarta Sans dipakai agar pernyataan panjang mudah dibaca, sedangkan IBM Plex Mono menjaga angka dan metadata mudah dipindai. Ringkasan ditempatkan sebelum indeks bagian dan rincian agar pengguna dapat melihat status lalu mencari penyebabnya. Kartu dan jarak antarkelompok memisahkan ringkasan dari bukti pernyataan. Motif garis halus pada header merujuk jalur landasan, terbatas pada header agar isi survei tetap dominan. Gerak hanya dipakai saat elemen masuk atau nilai batang berubah.
+
+Saat audit awal, semua 32 respons pada sheet terindikasi data uji (30 ID berawalan `DUM`, dua respons lain bertanda `Tester`). Aplikasi menandainya dan tidak menyajikan angka tersebut sebagai hasil produksi. Pertanyaan kondisional seperti transit dan Lost & Found terisi juga pada responden yang mungkin tidak mengalami layanan itu; penafsiran indeks bagian tersebut perlu memperhatikan cara form mengumpulkan jawaban.
+
+## Halaman dan ekspor
+
+| Rute | Fungsi |
+|---|---|
+| `/` | Dashboard dengan filter dan rincian survei. |
+| `/presentasi` | Laporan satu halaman yang dapat dibagikan lewat URL. |
+| `/api/export?format=pdf` | Unduh laporan PDF sesuai cakupan URL. |
+| `/api/export?format=xlsx` | Unduh sheet sumber terfilter, rekap dengan rumus, dan tabel standar KPI. |
+
+Dashboard mengambil ulang data tiap dua menit selama terbuka, halaman presentasi tiap lima menit. Server menyimpan hasil baca Sheets selama 60 detik. Tombol **Muat ulang** melewati cache tersebut.

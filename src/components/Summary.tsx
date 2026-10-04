@@ -28,8 +28,7 @@ export function HeroIndex({
 
   return (
     <div className={`card rise relative overflow-hidden ${className}`}>
-      <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-lime to-brand" aria-hidden />
-      <div className={large ? "p-6 pl-8 sm:p-10 sm:pl-12" : "p-5 pl-7 sm:p-7 sm:pl-9"}>
+      <div className={large ? "p-6 sm:p-10" : "p-5 sm:p-7"}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="eyebrow">Index keseluruhan · {meta.label}</p>
@@ -134,7 +133,7 @@ export function SummaryTiles({
   const statementsBelow = statements.filter((s) => !meetsKpi(s.index)).length;
 
   return (
-    <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${className}`}>
+    <div className={`grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:gap-4 ${className}`}>
       <Tile
         label="Responden"
         value={result.respondents.toLocaleString("id-ID")}
@@ -176,7 +175,7 @@ export function SummaryTiles({
         note="Pernyataan yang skornya belum sampai standar"
         delay={180}
       />
-      <Tile
+      {nps.n > 0 && <Tile
         label="Net Promoter Score"
         value={nps.score === null ? "–" : nps.score > 0 ? `+${nps.score}` : String(nps.score)}
         note={
@@ -189,7 +188,7 @@ export function SummaryTiles({
           )
         }
         delay={240}
-      />
+      />}
     </div>
   );
 }

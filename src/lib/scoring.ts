@@ -1,4 +1,4 @@
-/** Standar minimum Index Kepuasan JOUMPA (Skala Likert 1–5). */
+/** Standar minimum Index Kepuasan Airline CSS (Skala Likert 1–5). */
 export const KPI_TARGET = 4.5;
 
 export type StatusTone = "good" | "warning" | "critical";
@@ -10,15 +10,11 @@ export interface Category {
   range: string;
 }
 
-/**
- * Rentang Index → Kategori → Status (menggantikan rumus Excel lama yang memakai
- * batas >4 untuk "Sangat Puas" dan ≥4,25 untuk status per bagian).
- */
 export const CATEGORIES: Category[] = [
   { range: "≤ 1,00", label: "Sangat Tidak Puas", status: "Belum Memenuhi Standar", tone: "critical" },
   { range: "1,01 – 2,00", label: "Tidak Puas", status: "Belum Memenuhi Standar", tone: "critical" },
   { range: "2,01 – 3,00", label: "Cukup / Netral", status: "Belum Memenuhi Standar", tone: "critical" },
-  { range: "3,01 – 4,49", label: "Puas", status: "Perlu Peningkatan", tone: "warning" },
+  { range: "3,01 – 4,49", label: "Puas", status: "Perlu Peningkatan / Belum Memenuhi Standar", tone: "warning" },
   { range: "4,50 – 5,00", label: "Sangat Puas", status: "Memenuhi Standar KPI", tone: "good" },
 ];
 
@@ -56,15 +52,17 @@ export function formatSigned(value: number): string {
 
 export interface Response {
   id: string;
-  rowIndex: number; // posisi baris di sheet (tanpa header)
-  date: string; // YYYY-MM-DD
+  rowIndex: number;
+  date: string;
   submittedAt: string;
-  services: string[];
-  channels: string[];
-  station: string; // kode bandara, mis. CGK
-  hadIssue: boolean | null;
+  airline: string;
+  flight: string;
+  route: string;
+  flightType: string;
+  travelPurpose: string;
+  isTestData: boolean;
   nps: number | null;
-  scores: (number | null)[]; // urut sesuai statement pada SectionDef[] segmen ini
+  scores: (number | null)[];
   comments: { best: string; improve: string; suggestion: string };
 }
 

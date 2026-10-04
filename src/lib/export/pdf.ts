@@ -47,8 +47,7 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
   const logo = loadLogo();
   const reports = scope.segments.map((seg) => buildSegmentReport(data, seg, scope.filters[seg]));
   const has = (k: ReportScope["content"][number]) => scope.content.includes(k);
-  // Posisi vertikal disimpan di objek: `let y` yang dibaca di dalam closure pernah
-  // dipadatkan minifier menjadi `y = 24 + text()` sehingga text() membaca nilai lama.
+  // Objek posisi mencegah minifier membaca nilai lama saat text() dipanggil.
   const cur = { y: M };
 
   const ensure = (h: number) => {
@@ -94,12 +93,11 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
       ? { content: t(label), styles: { textColor: TONE[tone].text, fillColor: TONE[tone].fill, fontStyle: "bold" } }
       : "-";
 
-  /* ── Halaman judul ── */
   if (logo) doc.addImage(logo, "PNG", M, cur.y, 36, 19.5);
   cur.y += 32;
   cur.y += text("LAPORAN SURVEI KEPUASAN PELANGGAN", M, 8.5, { bold: true, color: MUTED });
   cur.y += 1;
-  cur.y += text("JOUMPA CSS Survey", M, 26, { bold: true });
+  cur.y += text("AIRLINE CSS SURVEY DASHBOARD", M, 22, { bold: true });
   const dates = reports.flatMap((r) => r.responses.map((x) => x.date)).filter(Boolean).sort();
   if (dates.length) {
     cur.y += text(`Respons tanggal ${formatDate(dates[0], true)} sampai ${formatDate(dates[dates.length - 1], true)}`, M, 11, {
@@ -107,10 +105,11 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
     });
   }
   cur.y += text(`Data Google Sheets per ${formatDateTime(data.fetchedAt)}`, M, 9, { color: MUTED });
+  const testTotal = reports.reduce((count, report) => count + report.responses.filter((response) => response.isTestData).length, 0);
+  if (testTotal) cur.y += text(`${testTotal} respons terindikasi uji tetap dihitung dalam index.`, M, 9, { color: TONE.warning.text });
   cur.y += 6;
 
-  // Kartu index per segmen
-  const cardW = reports.length > 1 ? (CONTENT_W - 6) / 2 : CONTENT_W / 2;
+  const cardW = CONTENT_W;
   reports.forEach((rep, i) => {
     const x = M + i * (cardW + 6);
     const idx = rep.result.overall.index;
@@ -124,7 +123,7 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
     }
     const save = cur.y;
     cur.y = save + 5.5;
-    text(`${rep.meta.label} · ${rep.meta.audience}`, x + 5, 10, { bold: true });
+    text("Airline Customer CSS Survey", x + 5, 10, { bold: true });
     text(`${rep.responses.length} respons`, x + cardW - 5, 8.5, { color: MUTED, align: "right" });
     cur.y = save + 13;
     text(formatIndex(idx), x + 5, 30, { bold: true });
@@ -141,11 +140,10 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
   cur.y += 54;
   cur.y += text(`Standar KPI ${formatIndex(KPI_TARGET)} pada skala 1 sampai 5.`, M, 9, { color: MUTED });
 
-  /* ── Per segmen ── */
   for (const rep of reports) {
     doc.addPage();
     cur.y = 24;
-    cur.y += text(`${rep.meta.label} · ${rep.meta.audience}`, M, 18, { bold: true });
+    cur.y += text("Airline Customer CSS Survey", M, 18, { bold: true });
     cur.y += text(rep.filterText, M, 9, { color: MUTED });
     cur.y += 3;
 
@@ -164,7 +162,7 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
   if (has("standar")) {
     doc.addPage();
     cur.y = 24;
-    heading("Standar KPI dan cara menghitung index", "Standar minimum index kepuasan JOUMPA adalah 4,50, berlaku untuk B2C dan B2B.");
+    heading("Standar KPI dan cara menghitung index", "Standar minimum index kepuasan Airline adalah 4,50 pada skala Likert 1 sampai 5.");
     table({
       head: [["Rentang index", "Kategori", "Status"]],
       body: CATEGORIES.map((c) => [
@@ -180,13 +178,13 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
       "Skor maksimum adalah jumlah jawaban dikali 5.",
       "Index bagian dan index keseluruhan memakai total skor semua pernyataan di dalamnya.",
       "Pertanyaan yang tidak dijawab tidak ikut dihitung. Index dibulatkan 2 desimal sebelum kategorinya ditentukan.",
+      "Pertanyaan bersyarat seperti transit dan lost & found hanya memengaruhi index bila dijawab.",
     ]) {
       ensure(6);
       cur.y += text(line, M, 9, { color: INK2 });
     }
   }
 
-  /* ── Header & footer tiap halaman ── */
   const pages = doc.getNumberOfPages();
   for (let p = 1; p <= pages; p++) {
     doc.setPage(p);
@@ -195,7 +193,7 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.5);
       doc.setTextColor(...INK);
-      doc.text("JOUMPA CSS Survey", M + 20, 13.5);
+      doc.text("Airline Customer CSS Survey", M + 20, 13.5);
       doc.setDrawColor(...LINE);
       doc.line(M, 18.5, PAGE_W - M, 18.5);
     }
@@ -208,7 +206,6 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
 
   return Buffer.from(doc.output("arraybuffer"));
 
-  /* ── Bagian-bagian laporan ── */
 
   function summarySection(rep: SegmentReport) {
     const { result, nps } = rep;
@@ -216,6 +213,7 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
     const cat = categorize(idx);
     const secWithData = result.sections.filter((s) => s.index !== null);
     const statements = result.sections.flatMap((s) => s.statements).filter((s) => s.index !== null);
+    const testCount = rep.responses.filter((r) => r.isTestData).length;
     heading("Ringkasan");
     table({
       body: [
@@ -227,6 +225,7 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
           idx === null ? "-" : `${idx - KPI_TARGET >= 0 ? "+" : "-"}${formatIndex(Math.abs(idx - KPI_TARGET))}`,
         ],
         ["Responden", String(result.respondents)],
+        ...(testCount ? [["Respons terindikasi uji", `${testCount} (tetap dihitung dalam index)`]] : []),
         ["Bagian yang lolos KPI", `${secWithData.filter((s) => meetsKpi(s.index)).length} dari ${secWithData.length}`],
         ["Pernyataan di bawah 4,50", `${statements.filter((s) => !meetsKpi(s.index)).length} dari ${statements.length}`],
         [
@@ -238,6 +237,9 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
       ],
       columnStyles: { 0: { cellWidth: 62, textColor: INK2 } },
     });
+    if (testCount) {
+      cur.y += text("Penanda uji disimpulkan dari ID atau nama maskapai pada Google Sheets, bukan kolom penanda khusus.", M, 8.5, { color: MUTED });
+    }
   }
 
   function sectionsSection(rep: SegmentReport) {
@@ -357,9 +359,9 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
     for (const [title, items] of groups) {
       if (!items.length) continue;
       table({
-        head: [[title, "Tanggal", "Bandara"]],
-        body: items.slice(0, 15).map(({ r, text: c }) => [t(c), r.date ? formatDate(r.date) : "-", r.station || "-"]),
-        columnStyles: { 1: { cellWidth: 26 }, 2: { cellWidth: 18 } },
+        head: [[title, "Tanggal", "Maskapai"]],
+        body: items.slice(0, 15).map(({ r, text: c }) => [t(c), r.date ? formatDate(r.date) : "-", r.airline || "-"]),
+        columnStyles: { 1: { cellWidth: 26 }, 2: { cellWidth: 30 } },
       });
     }
   }

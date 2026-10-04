@@ -1,4 +1,4 @@
-export type Segment = "b2c" | "b2b";
+export type Segment = "airline";
 
 export interface SegmentMeta {
   id: Segment;
@@ -8,20 +8,11 @@ export interface SegmentMeta {
 }
 
 export const SEGMENT_META: Record<Segment, SegmentMeta> = {
-  b2c: { id: "b2c", label: "B2C", audience: "Penumpang", sheet: process.env.SHEET_B2C || "B2C CSS Tally" },
-  b2b: { id: "b2b", label: "B2B", audience: "Mitra Bisnis", sheet: process.env.SHEET_B2B || "B2B CSS Tally" },
+  airline: { id: "airline", label: "Airline", audience: "Penumpang", sheet: process.env.SHEET_AIRLINE || "CSS Airline Tally" },
 };
 
-export const SEGMENT_IDS: Segment[] = ["b2c", "b2b"];
+export const SEGMENT_IDS: Segment[] = ["airline"];
 
-/**
- * Pengelompokan pernyataan ke bagian kuesioner.
- *
- * Sheet Tally hanya berisi teks pernyataan, tanpa nama bagiannya. Katalog ini
- * dipakai sebatas untuk memberi label bagian. Daftar, urutan, dan jumlah
- * pernyataan tetap dibaca dari header sheet; pernyataan yang tidak ada di
- * katalog masuk ke kelompok "Pernyataan lainnya".
- */
 export interface SectionCatalogEntry {
   code: string;
   title: string;
@@ -29,164 +20,85 @@ export interface SectionCatalogEntry {
   statements: string[];
 }
 
+// Judul bagian tidak ada di sheet; teks pernyataan menjaga pemetaan saat kolom dipindah.
 export const SECTION_CATALOG: Record<Segment, SectionCatalogEntry[]> = {
-  b2c: [
+  airline: [
     {
-      code: "B",
-      title: "Tahap Reservasi",
-      short: "Reservasi",
+      code: "A", title: "Check-in dan Dokumen", short: "Check-in",
       statements: [
-        "Proses reservasi mudah dilakukan melalui kanal pilihan saya (email/telepon/website)",
-        "Saya tidak perlu mengulang informasi yang sama saat berpindah kanal komunikasi",
-        "Petugas reservasi merespons dengan cepat",
-        "Petugas menjelaskan ketentuan force majeure (kebijakan pembatalan/biaya) dengan jelas sejak awal",
-        "Saya menerima email konfirmasi reservasi tepat waktu",
-        "Isi email konfirmasi lengkap dan mudah dipahami (jadwal, jenis layanan, nama petugas)",
-        "Saya sudah mengetahui estimasi biaya tambahan (mis. kelebihan bagasi) sebelum tiba di bandara",
+        "Petugas check-in counter menyambut saya dengan ramah dan sopan",
+        "Antrean check-in tidak terlalu lama sesuai kondisi jam keberangkatan",
+        "Proses verifikasi tiket dan dokumen identitas berjalan cepat dan tidak berbelit",
+        "Saya tidak perlu menjelaskan dokumen/persyaratan yang sama berulang kali",
+        "Petugas menjelaskan dengan jelas jika ada dokumen tambahan yang saya perlukan (mis. kondisi kesehatan khusus)",
       ],
     },
     {
-      code: "C",
-      title: "Tahap Keberangkatan",
-      short: "Keberangkatan",
+      code: "B", title: "Bagasi dan Biaya", short: "Bagasi",
       statements: [
-        "Petugas Joumpa sudah siap menyambut saya tepat waktu di drop zone",
-        "Saya mudah dikenali/ditemukan oleh petugas (paging name)",
-        "Petugas menyambut dengan ramah dan sopan",
-        "Bantuan penanganan bagasi dilakukan dengan hati-hati dan meminta izin terlebih dahulu",
-        "Saya didampingi dengan baik selama proses check-in di counter maskapai",
-        "Informasi biaya tambahan bagasi (jika ada) tidak mengejutkan saya di counter",
-        "Ruang tunggu / lounge yang disediakan nyaman sesuai fasilitas",
-        "Layanan transportasi ke/dari bandara tersedia tanpa menunggu lama",
-        "Proses pembayaran dan penyelesaian layanan (end of service) berjalan cepat dan jelas",
+        "Proses penimbangan bagasi dilakukan secara terbuka dan saya dapat melihat hasil timbangan dengan jelas",
+        "Saya sudah mengetahui estimasi biaya kelebihan bagasi sebelum tiba di counter (mis. lewat email/app)",
+        "Jika terdapat kelebihan bagasi, biaya yang saya bayar sesuai dengan tarif resmi yang berlaku",
+        "Saya diarahkan membayar kelebihan bagasi hanya melalui kasir resmi/QRIS resmi maskapai, bukan secara personal ke petugas",
+        "Saya menerima bukti/struk pembayaran resmi atas kelebihan bagasi yang saya bayarkan",
+        "Label/tag bagasi saya terpasang dengan benar dan sesuai dengan penerbangan saya",
+        "Bagasi khusus saya (mis. alat olahraga, mobility aids, alat musik) ditangani dengan hati-hati",
       ],
     },
     {
-      code: "D",
-      title: "Tahap Transit / Transfer",
-      short: "Transit / Transfer",
+      code: "C", title: "Boarding dan Gate", short: "Boarding",
       statements: [
-        "Saya didampingi penuh oleh petugas selama proses transit",
-        "Saya tidak khawatir tertinggal penerbangan lanjutan",
-        "Proses pengambilan bagasi/through check-in saat transit berjalan lancar",
-        "Transportasi antar-terminal (jika diperlukan) tersedia tepat waktu",
+        "Informasi gate dan waktu boarding jelas dan mudah saya temukan",
+        "Proses verifikasi boarding pass &amp; identitas di gate berjalan cepat, tanpa antrean panjang",
+        "Petugas menerapkan prioritas boarding secara adil dan konsisten (lansia, keluarga dengan bayi, disabilitas)",
+        "Saya tidak mengalami kebingungan terkait zona/grup boarding",
+        "Petugas gate bersikap profesional dan responsif terhadap pertanyaan saya",
       ],
     },
     {
-      code: "E",
-      title: "Tahap Kedatangan",
-      short: "Kedatangan",
+      code: "D", title: "Transit dan Transfer", short: "Transit",
       statements: [
-        "Petugas Joumpa sudah hadir tepat waktu di area penjemputan (pick-up area)",
-        "Saya mudah menemukan petugas melalui paging board/name",
-        "Saya disambut secara personal (disebut nama) dan hangat",
-        "Petugas membantu pengambilan bagasi di conveyor belt dengan baik",
-        "Perbincangan/personal service petugas selama pendampingan terasa nyaman dan sopan",
-        "Pendampingan menuju customs declaration/X-Ray berjalan lancar",
-        "Transportasi lanjutan (limousine/hotel/mitra) sudah siap tanpa menunggu lama",
-        "Bagasi dimuat dengan lengkap dan benar ke kendaraan",
+        "Saya diarahkan dengan jelas menuju gate lanjutan atau area transfer",
+        "Saya tidak khawatir tertinggal penerbangan lanjutan saat transit singkat",
+        "Proses transfer bagasi (through check-in) saat transit berjalan lancar tanpa saya perlu mengurus ulang",
+        "Petugas transfer desk siap membantu begitu saya turun dari pesawat",
       ],
     },
     {
-      code: "F",
-      title: "Penanganan Kendala / Irregularity",
-      short: "Penanganan kendala",
+      code: "E", title: "Gangguan dan Komplain", short: "Gangguan",
       statements: [
-        "Kendala saya ditangani dengan serius dan cepat oleh petugas",
-        "Saya mendapat informasi/update perkembangan penanganan hingga selesai",
-        "Saya tidak perlu mengurus masalah sendiri ke berbagai pihak",
-        "Jika saya menyampaikan komplain, keluhan saya didengarkan dengan empati",
-        "Saya menerima permohonan maaf dan solusi/tindak lanjut resmi dari manajemen",
-        "Waktu penyelesaian kendala/komplain sesuai harapan saya",
+        "Saya menerima informasi delay/perubahan jadwal secara cepat dan jelas",
+        "Petugas menjelaskan hak-hak saya sebagai penumpang sesuai peraturan yang berlaku",
+        "Proses rebooking/reprotection (jika diperlukan) dilakukan dengan cepat dan tidak berbelit",
+        "Jika saya menyampaikan komplain, keluhan saya didengarkan dengan serius dan empati",
+        "Saya menerima update perkembangan penanganan kendala hingga selesai",
       ],
     },
     {
-      code: "G",
-      title: "Keamanan & Kepatuhan Prosedur",
-      short: "Keamanan",
+      code: "F", title: "Lost & Found", short: "Lost & Found",
       statements: [
-        "Saya memahami prosedur keamanan/deklarasi barang khusus (mis. senjata api/security item) sejak sebelum tiba di bandara",
-        "Proses screening keamanan berjalan lancar dengan pendampingan petugas",
+        "Lokasi counter Lost &amp; Found mudah ditemukan",
+        "Proses pelaporan kehilangan/kerusakan bagasi (PIR) singkat dan tidak berbelit",
+        "Saya mendapat nomor referensi sebagai bukti laporan",
+        "Saya menerima update status pencarian bagasi secara berkala tanpa harus menghubungi berulang kali",
+        "Bagasi saya diantar/dikembalikan tepat waktu setelah ditemukan",
       ],
     },
     {
-      code: "H",
-      title: "Kepuasan Keseluruhan & Loyalitas",
-      short: "Kepuasan keseluruhan",
+      code: "G", title: "Keamanan", short: "Keamanan",
       statements: [
-        "Secara keseluruhan, saya puas dengan layanan JOUMPA yang saya terima",
-        "Petugas Joumpa bersikap profesional di sepanjang perjalanan saya",
-        "Layanan JOUMPA memberikan nilai lebih dibandingkan menggunakan layanan bandara reguler",
-      ],
-    },
-  ],
-  b2b: [
-    {
-      code: "B",
-      title: "Reservasi & Koordinasi Awal",
-      short: "Reservasi & koordinasi",
-      statements: [
-        "Proses reservasi/permintaan layanan melalui kanal yang tersedia (email/telepon/website/JMS) mudah dan efisien",
-        "Data yang kami sampaikan tidak perlu diinput ulang saat berpindah kanal komunikasi dengan JOUMPA",
-        "Petugas reservasi JOUMPA merespons permintaan kami dengan cepat dan sesuai kesepakatan waktu layanan",
-        "Konfirmasi tertulis (email/dokumen resmi) diterima tepat waktu dan berisi informasi yang lengkap",
-        "Ketentuan force majeure, kebijakan pembatalan, dan estimasi biaya tambahan dikomunikasikan secara jelas sejak awal",
+        "Saya memahami barang-barang yang dilarang dibawa sebelum tiba di security check point",
+        "Proses screening keamanan berjalan lancar dan petugas bersikap sopan meski prosedurnya ketat",
+        "Saya merasa aman selama berada di area bandara maupun di sekitar pesawat",
       ],
     },
     {
-      code: "C",
-      title: "Kualitas Layanan Operasional & Kepatuhan SLA",
-      short: "Operasional & SLA",
+      code: "H", title: "Kepuasan dan Loyalitas", short: "Kepuasan",
       statements: [
-        "Petugas JOUMPA di lapangan hadir tepat waktu sesuai jadwal yang disepakati (drop zone/pick-up area)",
-        "Petugas JOUMPA bersikap profesional, rapi, dan sesuai standar layanan yang disepakati dalam kontrak",
-        "Penanganan penumpang/tamu kami (bagasi, pendampingan check-in, transit, kedatangan) berjalan sesuai prosedur",
-        "JOUMPA konsisten memenuhi indikator kinerja (KPI/SLA) yang telah disepakati bersama",
-        "Ketersediaan transportasi mitra (jika relevan) dapat dipastikan tepat waktu tanpa hambatan koordinasi",
-      ],
-    },
-    {
-      code: "D",
-      title: "Komunikasi & Koordinasi Real-Time",
-      short: "Komunikasi real-time",
-      statements: [
-        "JOUMPA menginformasikan perubahan jadwal (ETA/delay/reschedule) kepada kami secara real-time",
-        "Kanal komunikasi antara tim operasional kami dan petugas lapangan JOUMPA responsif dan mudah diakses",
-        "Notifikasi terkait status tamu/penumpang (nama, waktu, kendaraan, jumlah bagasi) kami terima secara akurat dan tepat waktu",
-        "Koordinasi lintas unit (mis. imigrasi, bea cukai, ground handling lain) berjalan lancar tanpa membebani pihak kami",
-      ],
-    },
-    {
-      code: "E",
-      title: "Penanganan Irregularity & Komplain",
-      short: "Irregularity & komplain",
-      statements: [
-        "Insiden/irregularity (bagasi, keterlambatan, kesalahan data, dsb.) dilaporkan kepada kami secara proaktif dan tepat waktu",
-        "JOUMPA menindaklanjuti setiap kasus hingga tuntas dan memberikan update perkembangan secara berkala",
-        "Apabila kami menyampaikan komplain, keluhan kami ditanggapi dengan cepat, serius, dan profesional",
-        "Kami menerima tindak lanjut resmi (surat/laporan investigasi/corrective action) dalam batas waktu yang wajar",
-        "Tindakan korektif dan preventif yang diberikan JOUMPA efektif mencegah terulangnya insiden serupa",
-      ],
-    },
-    {
-      code: "F",
-      title: "Pelaporan, Dokumentasi & Administrasi",
-      short: "Pelaporan & administrasi",
-      statements: [
-        "Laporan operasional (Handling Report, Service Delivered Form, log book, dsb.) akurat dan mudah diverifikasi",
-        "Proses invoicing/penagihan berjalan tepat waktu dan sesuai dengan layanan yang diberikan",
-        "Dokumentasi bukti serah terima (bagasi, layanan selesai, dsb.) lengkap dan dapat diandalkan sebagai referensi",
-      ],
-    },
-    {
-      code: "G",
-      title: "Hubungan Kemitraan & Account Management",
-      short: "Hubungan kemitraan",
-      statements: [
-        "Tim Account Management JOUMPA responsif terhadap kebutuhan dan pertanyaan kami",
-        "JOUMPA terbuka terhadap masukan dan bersedia melakukan perbaikan berkelanjutan",
-        "Pertemuan evaluasi/review kinerja (jika ada) dilakukan secara berkala dan konstruktif",
-        "Secara keseluruhan, JOUMPA merupakan mitra ground handling/concierge yang dapat diandalkan",
+        "Secara keseluruhan, saya puas dengan layanan ground handling yang saya terima",
+        "Petugas ground handling bersikap profesional di sepanjang perjalanan saya",
+        "Saya percaya proses check-in dan penanganan bagasi dilakukan secara jujur dan transparan",
+        "Saya akan tetap menggunakan maskapai ini untuk perjalanan berikutnya",
       ],
     },
   ],
