@@ -56,6 +56,7 @@ export interface Response {
   date: string;
   submittedAt: string;
   airline: string;
+  airport: string;
   flight: string;
   route: string;
   flightType: string;

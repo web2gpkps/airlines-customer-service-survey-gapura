@@ -11,3 +11,7 @@ next-env.d.ts
 # Local files
 *.xlsx
 /logo-gapura.webp
+
+# Local tooling / file lokal
+.claude/
+httpsairline-*.txt

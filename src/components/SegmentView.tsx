@@ -6,7 +6,6 @@ import { computeNps, computeSurvey, weeklyTrend, type Response, type SectionDef 
 import type { SegmentMeta } from "@/lib/survey-config";
 import { Methodology, Priority, Profile, Voices } from "./Insights";
 import { SectionIndex } from "./SectionIndex";
-import { StatementDetail } from "./StatementDetail";
 import { HeroIndex, SummaryTiles } from "./Summary";
 import { TrendChart } from "./TrendChart";
 
@@ -76,8 +75,6 @@ export function SegmentView({
           <TrendChart points={trend} />
         </div>
       </section>
-
-      <StatementDetail result={result} />
 
       <section className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-12 lg:gap-6">
         <div className="min-w-0 lg:col-span-5"><Profile meta={meta} responses={responses} /></div>

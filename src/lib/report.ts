@@ -48,10 +48,11 @@ export function buildSegmentReport(data: DashboardData, seg: Segment, filters: F
   const responses = applyFilters(segment.responses, filters);
   const filterText = [
     filters.month && `Periode ${filters.month}`,
+    filters.airport && `Stasiun ${filters.airport}`,
     filters.airline && `Maskapai ${filters.airline}`,
     filters.flightType && `Jenis penerbangan ${filters.flightType}`,
-    filters.travelPurpose && `Tujuan perjalanan ${filters.travelPurpose}`,
     filters.route && `Rute ${filters.route}`,
+    filters.kpi && `KPI ${filters.kpi === "met" ? "memenuhi standar" : "belum memenuhi"}`,
   ].filter(Boolean).join(" · ") || "Semua respons";
   return {
     seg,

@@ -180,8 +180,13 @@ export function SummaryTiles({
         value={nps.score === null ? "–" : nps.score > 0 ? `+${nps.score}` : String(nps.score)}
         note={
           nps.n ? (
-            <span className="num">
-              Dari {nps.n} jawaban: {nps.promoters} promotor, {nps.passives} pasif, {nps.detractors} detraktor
+            <span className="num block">
+              Dari {nps.n} jawaban:
+              <span className="mt-1 block space-y-0.5">
+                <span className="block"><b className="text-ink">{nps.promoters}</b> promotor (skor 9–10) · sangat puas, mau merekomendasikan</span>
+                <span className="block"><b className="text-ink">{nps.passives}</b> pasif (skor 7–8) · puas tapi biasa saja</span>
+                <span className="block"><b className="text-ink">{nps.detractors}</b> detraktor (skor 0–6) · kurang puas, berisiko tidak merekomendasikan</span>
+              </span>
             </span>
           ) : (
             "Belum ada yang menjawab"

@@ -1,7 +1,7 @@
 import { JWT } from "google-auth-library";
 import { getServiceAccount, getSheetId } from "./credentials";
 import type { Response, SectionDef } from "./scoring";
-import { OTHER_SECTION, SECTION_CATALOG, SEGMENT_META, type Segment } from "./survey-config";
+import { OTHER_SECTION, SECTION_CATALOG, SEGMENT_META, type SectionCatalogEntry, type Segment } from "./survey-config";
 
 const CACHE_TTL_MS = 60_000;
 
@@ -34,7 +34,11 @@ export function toClientData(data: ServerDashboardData): DashboardData {
 
 let cache: { at: number; data: ServerDashboardData } | null = null;
 
+const MIN_REFRESH_INTERVAL_MS = 15_000;
+
+/** Muat ulang dari Sheets, tetapi tidak lebih sering dari MIN_REFRESH_INTERVAL_MS agar kuota API tidak bisa dihabiskan. */
 export function clearSheetCache() {
+  if (cache && Date.now() - cache.at < MIN_REFRESH_INTERVAL_MS) return;
   cache = null;
 }
 
@@ -58,7 +62,7 @@ async function fetchDashboardData(): Promise<ServerDashboardData> {
   const sheet = SEGMENT_META.airline.sheet;
 
   const metaRes = await fetch(`${base}?fields=sheets.properties.title`, { headers, cache: "no-store" });
-  if (!metaRes.ok) throw new Error(`Google Sheets API ${metaRes.status}: ${(await metaRes.text()).slice(0, 300)}`);
+  if (!metaRes.ok) throw new Error(`Google Sheets API ${metaRes.status}`);
   const titles = new Set(
     ((await metaRes.json()) as { sheets: { properties: { title: string } }[] }).sheets.map((s) => s.properties.title),
   );
@@ -68,7 +72,7 @@ async function fetchDashboardData(): Promise<ServerDashboardData> {
   url.searchParams.append("ranges", `'${sheet.replace(/'/g, "''")}'`);
   url.searchParams.set("valueRenderOption", "FORMATTED_VALUE");
   const res = await fetch(url, { headers, cache: "no-store" });
-  if (!res.ok) throw new Error(`Google Sheets API ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  if (!res.ok) throw new Error(`Google Sheets API ${res.status}`);
   const json = (await res.json()) as { valueRanges: { values?: string[][] }[] };
   const rows = json.valueRanges[0]?.values ?? [];
 
@@ -110,20 +114,38 @@ function value(row: string[], index: number): string {
   return index < 0 ? "" : row[index]?.trim() ?? "";
 }
 
-function discoverStatements(headers: string[]) {
-  return headers.flatMap((header, col) => {
-    const match = header.match(/^Pernyataan\s*\/\s*Aspek yang Dinilai\s*\[([\s\S]+)\]\s*$/i);
-    return match ? [{ text: displayText(match[1]), col }] : [];
+function discoverStatements(headers: string[], rows: string[][], catalog: SectionCatalogEntry[]) {
+  const known = new Map<string, string>(
+    catalog.flatMap((section) => section.statements.map((text): [string, string] => [norm(text), text])),
+  );
+  const bracketed: { text: string; col: number }[] = [];
+  const numbered: { text: string; col: number }[] = [];
+
+  headers.forEach((header, col) => {
+    const bracketedMatch = header.match(/^Pernyataan\s*\/\s*Aspek yang Dinilai\s*\[([\s\S]+)\]\s*$/i);
+    if (bracketedMatch) {
+      bracketed.push({ text: displayText(bracketedMatch[1]), col });
+      return;
+    }
+
+    const numberedMatch = header.match(/^\d+\.\s*([\s\S]+?)\s*$/);
+    const catalogText = numberedMatch ? known.get(norm(numberedMatch[1])) : undefined;
+    if (catalogText) numbered.push({ text: catalogText, col });
   });
+
+  const populated = (items: { col: number }[]) =>
+    items.reduce((total, item) => total + rows.filter((row) => parseLikert(value(row, item.col)) !== null).length, 0);
+
+  return populated(numbered) > populated(bracketed) ? numbered : bracketed;
 }
 
 export function parseSegment(segment: Segment, rows: string[][]): ServerSegmentData {
   const [headers = [], ...body] = rows;
   if (!headers.length) throw new Error(`Sheet "${SEGMENT_META[segment].sheet}" tidak memiliki header.`);
-  const discovered = discoverStatements(headers);
+  const catalog = SECTION_CATALOG[segment];
+  const discovered = discoverStatements(headers, body, catalog);
   if (!discovered.length) throw new Error("Tidak ada kolom pernyataan Likert pada sheet Airline.");
 
-  const catalog = SECTION_CATALOG[segment];
   const sectionOf = new Map<string, number>();
   catalog.forEach((section, index) => section.statements.forEach((text) => sectionOf.set(norm(text), index)));
   const buckets: typeof discovered[] = catalog.map(() => []);
@@ -153,15 +175,36 @@ export function parseSegment(segment: Segment, rows: string[][]): ServerSegmentD
   const col = {
     id: requiredColumn(headers, "Submission ID", /^Submission ID$/i),
     submittedAt: requiredColumn(headers, "Submitted at", /^Submitted at$/i),
-    airline: requiredColumn(headers, "Nama maskapai", /^1\.\s*Nama maskapai/i),
-    flight: requiredColumn(headers, "Tanggal & nomor penerbangan", /^2\.\s*Tanggal\s*&\s*nomor penerbangan/i),
-    route: requiredColumn(headers, "Rute", /^3\.\s*Rute\s*\//i),
-    flightType: requiredColumn(headers, "Jenis penerbangan", /^4\.\s*Jenis penerbangan/i),
-    travelPurpose: requiredColumn(headers, "Tujuan perjalanan", /^5\.\s*Tujuan perjalanan/i),
-    nps: requiredColumn(headers, "Rekomendasi maskapai", /^6\.\s*Seberapa besar kemungkinan/i),
-    best: findColumn(headers, /^7\.\s*Apa bagian dari layanan/i),
-    improve: findColumn(headers, /^8\.\s*Apa yang menurut Anda perlu diperbaiki/i),
-    suggestion: findColumn(headers, /^9\.\s*Saran atau masukan/i),
+    airline: requiredColumn(
+      headers,
+      "Nama maskapai",
+      /^(?:\d+\.\s*)?Nama maskapai\s*\(airline\)\s*yang Anda gunakan:\s*$/i,
+    ),
+    flight: requiredColumn(
+      headers,
+      "Nomor penerbangan & Tanggal",
+      /^(?:\d+\.\s*)?(?:Tanggal\s*&\s*nomor penerbangan|Nomor penerbangan\s*&\s*Tanggal):\s*$/i,
+    ),
+    airport: findColumn(headers, /^Bandara keberangkatan\s*\/\s*kedatangan\s*\/\s*transit:?\s*$/i),
+    route: requiredColumn(
+      headers,
+      "Rute",
+      /^(?:\d+\.\s*)?Rute\s*\/\s*bandara keberangkatan\s*[–-]\s*tujuan:\s*$/i,
+    ),
+    flightType: requiredColumn(
+      headers,
+      "Jenis penerbangan",
+      /^(?:\d+\.\s*)?Jenis penerbangan Anda:\s*$/i,
+    ),
+    travelPurpose: requiredColumn(
+      headers,
+      "Tujuan perjalanan",
+      /^(?:\d+\.\s*)?Tujuan perjalanan Anda:\s*$/i,
+    ),
+    nps: requiredColumn(headers, "Rekomendasi maskapai", /^\d+\.\s*Seberapa besar kemungkinan/i),
+    best: findColumn(headers, /^\d+\.\s*Apa bagian dari layanan/i),
+    improve: findColumn(headers, /^\d+\.\s*Apa yang menurut Anda perlu diperbaiki/i),
+    suggestion: findColumn(headers, /^\d+\.\s*Saran atau masukan/i),
   };
 
   const responses: Response[] = [];
@@ -177,6 +220,7 @@ export function parseSegment(segment: Segment, rows: string[][]): ServerSegmentD
       date: submittedAt.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? "",
       submittedAt,
       airline,
+      airport: value(row, col.airport),
       flight: value(row, col.flight),
       route: normalizeRoute(value(row, col.route)),
       flightType: value(row, col.flightType),

@@ -77,7 +77,7 @@ function countBy(values: string[]) {
   return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
-type ProfileKey = "airline" | "flightType" | "travelPurpose" | "route";
+type ProfileKey = "airport" | "airline" | "flightType" | "travelPurpose" | "route";
 
 export function Profile({
   meta,
@@ -87,12 +87,14 @@ export function Profile({
   responses: Response[];
 }) {
   const dimensions = ([
+    { value: "airport", label: "Station" },
     { value: "airline", label: "Maskapai" },
     { value: "flightType", label: "Penerbangan" },
     { value: "travelPurpose", label: "Tujuan" },
     { value: "route", label: "Rute" },
   ] as { value: ProfileKey; label: string }[]).filter(({ value }) => responses.some((r) => r[value]));
-  const [key, setKey] = useState<ProfileKey>("airline");
+  const [key, setKey] = useState<ProfileKey>("airport");
+  const [showAll, setShowAll] = useState(false);
   const selected = dimensions.some((d) => d.value === key) ? key : dimensions[0]?.value;
   const rows = useMemo(() => {
     return selected ? countBy(responses.map((r) => r[selected])) : [];
@@ -106,17 +108,27 @@ export function Profile({
       <CardHeader
         eyebrow="Profil responden"
         title={`${meta.audience} yang mengisi survei`}
+        description={
+          rows.length > 8 && (
+            <button onClick={() => setShowAll((v) => !v)} className="font-semibold text-brand hover:underline">
+              {showAll ? "Tampilkan lebih sedikit" : `Tampilkan semua (${rows.length})`}
+            </button>
+          )
+        }
         action={
           <Segmented
             label="Dimensi profil"
             value={selected}
-            onChange={setKey}
+            onChange={(v) => {
+              setKey(v);
+              setShowAll(false);
+            }}
             options={dimensions}
           />
         }
       />
       <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 px-5 py-4 sm:px-6">
-        {rows.slice(0, 8).map(([label, count]) => (
+        {(showAll ? rows : rows.slice(0, 8)).map(([label, count]) => (
           <li key={label}>
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="min-w-0 truncate text-ink" title={label}>{label}</span>
@@ -130,9 +142,16 @@ export function Profile({
             </div>
           </li>
         ))}
-        {rows.length > 8 && <li className="text-xs text-muted">+{rows.length - 8} lainnya</li>}
         {rows.length === 0 && <li className="text-sm text-muted">Kolom ini kosong di sheet.</li>}
       </ul>
+      {rows.length > 8 && (
+        <button
+          onClick={() => setShowAll((v) => !v)}
+          className="min-h-11 w-full border-t border-line text-sm font-semibold text-brand hover:bg-brand-wash"
+        >
+          {showAll ? "Tampilkan lebih sedikit" : `Tampilkan semua (${rows.length})`}
+        </button>
+      )}
     </section>
   );
 }
@@ -149,8 +168,15 @@ export function Voices({ responses }: { responses: Response[] }) {
   return (
     <section className="card flex h-full flex-col overflow-hidden">
       <CardHeader
-        eyebrow="Suara pelanggan"
-        title="Apa kata responden"
+        eyebrow="Voice of Customer"
+        title="Respondent Customer Feedback"
+        description={
+          items.length > 6 && (
+            <button onClick={() => setShowAll((v) => !v)} className="font-semibold text-brand hover:underline">
+              {showAll ? "Tampilkan lebih sedikit" : `Tampilkan semua (${items.length})`}
+            </button>
+          )
+        }
         action={
           <Segmented
             label="Jenis masukan"
@@ -240,8 +266,8 @@ export function Methodology({ label, sheet, overall }: { label?: string; sheet?:
                     <td className="px-3 py-3 font-semibold text-ink">
                       {c.label}
                       {isCurrent && label && (
-                        <span className="ml-2 rounded bg-ink px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white">
-                          {label} SAAT INI
+                        <span className="ml-2 inline-block rounded bg-ink px-1.5 py-0.5 font-mono text-[10px] whitespace-nowrap font-semibold text-white">
+                          KPI CSS {label} Saat Ini
                         </span>
                       )}
                       <span className="mt-1.5 block sm:hidden">

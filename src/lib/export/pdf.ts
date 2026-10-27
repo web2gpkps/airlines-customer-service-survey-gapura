@@ -228,7 +228,7 @@ export function buildPdf(data: ServerDashboardData, scope: ReportScope): Buffer 
           "Net Promoter Score",
           nps.score === null
             ? "Belum ada jawaban"
-            : `${nps.score > 0 ? "+" : ""}${nps.score} (dari ${nps.n} jawaban: ${nps.promoters} promotor, ${nps.passives} pasif, ${nps.detractors} detraktor)`,
+            : `${nps.score > 0 ? "+" : ""}${nps.score} (dari ${nps.n} jawaban: ${nps.promoters} promotor/sangat puas, mau merekomendasikan [9-10], ${nps.passives} pasif/puas tapi biasa saja [7-8], ${nps.detractors} detraktor/kurang puas [0-6])`,
         ],
       ],
       columnStyles: { 0: { cellWidth: 62, textColor: INK2 } },

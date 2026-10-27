@@ -24,7 +24,7 @@ export interface SectionCatalogEntry {
 export const SECTION_CATALOG: Record<Segment, SectionCatalogEntry[]> = {
   airline: [
     {
-      code: "A", title: "Check-in dan Dokumen", short: "Check-in",
+      code: "A", title: "Check-in & Dokumen", short: "Check-in & Dokumen",
       statements: [
         "Petugas check-in counter menyambut saya dengan ramah dan sopan",
         "Antrean check-in tidak terlalu lama sesuai kondisi jam keberangkatan",
@@ -34,7 +34,7 @@ export const SECTION_CATALOG: Record<Segment, SectionCatalogEntry[]> = {
       ],
     },
     {
-      code: "B", title: "Bagasi dan Biaya", short: "Bagasi",
+      code: "B", title: "Penimbangan & Pembayaran Bagasi", short: "Penimbangan & Pembayaran Bagasi",
       statements: [
         "Proses penimbangan bagasi dilakukan secara terbuka dan saya dapat melihat hasil timbangan dengan jelas",
         "Saya sudah mengetahui estimasi biaya kelebihan bagasi sebelum tiba di counter (mis. lewat email/app)",
@@ -46,7 +46,7 @@ export const SECTION_CATALOG: Record<Segment, SectionCatalogEntry[]> = {
       ],
     },
     {
-      code: "C", title: "Boarding dan Gate", short: "Boarding",
+      code: "C", title: "Boarding Gate", short: "Boarding Gate",
       statements: [
         "Informasi gate dan waktu boarding jelas dan mudah saya temukan",
         "Proses verifikasi boarding pass &amp; identitas di gate berjalan cepat, tanpa antrean panjang",
@@ -56,7 +56,7 @@ export const SECTION_CATALOG: Record<Segment, SectionCatalogEntry[]> = {
       ],
     },
     {
-      code: "D", title: "Transit dan Transfer", short: "Transit",
+      code: "D", title: "Transit / Transfer", short: "Transit / Transfer",
       statements: [
         "Saya diarahkan dengan jelas menuju gate lanjutan atau area transfer",
         "Saya tidak khawatir tertinggal penerbangan lanjutan saat transit singkat",
@@ -65,7 +65,7 @@ export const SECTION_CATALOG: Record<Segment, SectionCatalogEntry[]> = {
       ],
     },
     {
-      code: "E", title: "Gangguan dan Komplain", short: "Gangguan",
+      code: "E", title: "Delay, Pembatalan & Kendala Lain", short: "Delay, Pembatalan & Kendala Lain",
       statements: [
         "Saya menerima informasi delay/perubahan jadwal secara cepat dan jelas",
         "Petugas menjelaskan hak-hak saya sebagai penumpang sesuai peraturan yang berlaku",
@@ -75,7 +75,7 @@ export const SECTION_CATALOG: Record<Segment, SectionCatalogEntry[]> = {
       ],
     },
     {
-      code: "F", title: "Lost & Found", short: "Lost & Found",
+      code: "F", title: "Lost and Found", short: "Lost and Found",
       statements: [
         "Lokasi counter Lost &amp; Found mudah ditemukan",
         "Proses pelaporan kehilangan/kerusakan bagasi (PIR) singkat dan tidak berbelit",
@@ -85,7 +85,7 @@ export const SECTION_CATALOG: Record<Segment, SectionCatalogEntry[]> = {
       ],
     },
     {
-      code: "G", title: "Keamanan", short: "Keamanan",
+      code: "G", title: "Keamanan & Kepatuhan Prosedur", short: "Keamanan & Kepatuhan Prosedur",
       statements: [
         "Saya memahami barang-barang yang dilarang dibawa sebelum tiba di security check point",
         "Proses screening keamanan berjalan lancar dan petugas bersikap sopan meski prosedurnya ketat",
@@ -93,7 +93,7 @@ export const SECTION_CATALOG: Record<Segment, SectionCatalogEntry[]> = {
       ],
     },
     {
-      code: "H", title: "Kepuasan dan Loyalitas", short: "Kepuasan",
+      code: "H", title: "Kepuasan Keseluruhan & Loyalitas", short: "Kepuasan Keseluruhan & Loyalitas",
       statements: [
         "Secara keseluruhan, saya puas dengan layanan ground handling yang saya terima",
         "Petugas ground handling bersikap profesional di sepanjang perjalanan saya",

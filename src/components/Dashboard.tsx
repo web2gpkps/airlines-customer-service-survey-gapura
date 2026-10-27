@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { Download, RefreshCw, RotateCcw, Share2 } from "lucide-react";
 import { refreshData } from "@/app/actions";
-import { ALL_CONTENT, EMPTY_FILTERS, applyFilters, hasFilters, type Filters, type ReportScope } from "@/lib/filters";
+import { ALL_CONTENT, EMPTY_FILTERS, KPI_OPTIONS, applyFilters, hasFilters, type Filters, type ReportScope } from "@/lib/filters";
 import type { DashboardData } from "@/lib/sheets";
 import { SEGMENT_META } from "@/lib/survey-config";
 import { SegmentView } from "./SegmentView";
@@ -29,13 +29,13 @@ export function Dashboard({ data }: { data: DashboardData }) {
     const all = segment.responses;
     return {
       months: [...new Set(all.map((r) => r.date.slice(0, 7)))].filter(Boolean).sort().reverse(),
+      airports: [...new Set(all.map((r) => r.airport))].filter(Boolean).sort(),
       airlines: [...new Set(all.map((r) => r.airline))].filter(Boolean).sort(),
       flightTypes: [...new Set(all.map((r) => r.flightType))].filter(Boolean).sort(),
-      travelPurposes: [...new Set(all.map((r) => r.travelPurpose))].filter(Boolean).sort(),
       routes: [...new Set(all.map((r) => r.route))].filter(Boolean).sort(),
     };
   }, [segment.responses]);
-  const setFilter = (key: keyof Filters, value: string) => setFilters((prev) => ({ ...prev, [key]: value }));
+  const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => setFilters((prev) => ({ ...prev, [key]: value }));
   const currentScope = (): ReportScope => ({ segments: ["airline"], filters: { airline: filters }, content: [...ALL_CONTENT] });
 
   return (
@@ -51,7 +51,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <p className="mr-1 text-right text-xs leading-snug text-muted">Data Google Sheets<br /><span className="font-medium text-ink-2">per {formatDateTime(data.fetchedAt)}</span></p>
+            <p className="mr-1 text-right text-xs leading-snug text-muted">Data Realtime<br /><span className="font-medium text-ink-2">per {formatDateTime(data.fetchedAt)}</span></p>
             <button onClick={() => startRefresh(async () => { await refreshData(); router.refresh(); })} disabled={refreshing} aria-label="Muat ulang data" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2 disabled:opacity-60">
               <RefreshCw aria-hidden className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
               <span className="hidden lg:inline">{refreshing ? "Memuat…" : "Muat ulang"}</span>
@@ -65,10 +65,11 @@ export function Dashboard({ data }: { data: DashboardData }) {
       <div className="border-b border-line bg-card">
         <div className="mx-auto flex max-w-[1320px] flex-wrap items-end gap-3 px-4 py-4 sm:px-6 lg:px-8">
           {options.months.length > 0 && <FilterSelect label="Periode" value={filters.month} onChange={(v) => setFilter("month", v)} allLabel="Semua periode" options={options.months.map((m) => ({ value: m, label: formatMonth(m) }))} />}
+          {options.airports.length > 0 && <FilterSelect label="Stasiun Bandara" value={filters.airport} onChange={(v) => setFilter("airport", v)} allLabel="Semua stasiun" options={options.airports.map((v) => ({ value: v, label: v }))} />}
           {options.airlines.length > 0 && <FilterSelect label="Maskapai" value={filters.airline} onChange={(v) => setFilter("airline", v)} allLabel="Semua maskapai" options={options.airlines.map((v) => ({ value: v, label: v }))} />}
           {options.flightTypes.length > 0 && <FilterSelect label="Jenis penerbangan" value={filters.flightType} onChange={(v) => setFilter("flightType", v)} allLabel="Semua jenis" options={options.flightTypes.map((v) => ({ value: v, label: v }))} />}
-          {options.travelPurposes.length > 0 && <FilterSelect label="Tujuan perjalanan" value={filters.travelPurpose} onChange={(v) => setFilter("travelPurpose", v)} allLabel="Semua tujuan" options={options.travelPurposes.map((v) => ({ value: v, label: v }))} />}
           {options.routes.length > 0 && <FilterSelect label="Rute" value={filters.route} onChange={(v) => setFilter("route", v)} allLabel="Semua rute" options={options.routes.map((v) => ({ value: v, label: v }))} />}
+          <FilterSelect label="KPI" value={filters.kpi} onChange={(v) => setFilter("kpi", v as Filters["kpi"])} allLabel="Semua KPI" options={[...KPI_OPTIONS]} />
           <div className="flex min-h-11 items-center gap-3 sm:ml-auto">
             <p className="text-sm text-muted" aria-live="polite"><span className="num font-bold text-ink">{filtered.length}</span> dari <span className="num">{segment.responses.length}</span> respons</p>
             {hasFilters(filters) && <button onClick={() => setFilters(EMPTY_FILTERS)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-brand hover:bg-brand-wash"><RotateCcw aria-hidden className="size-3.5" /> Hapus filter</button>}

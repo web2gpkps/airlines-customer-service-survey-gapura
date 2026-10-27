@@ -26,6 +26,9 @@ function cellValue(raw: string | undefined): string | number | null {
   return raw;
 }
 
+/** Kolom data pribadi penumpang tidak ikut diekspor. Posisi kolom tetap dipertahankan agar rumus rekap tetap valid. */
+const PERSONAL_DATA_HEADER = /nama penumpang|nomor\s*hp|no\.?\s*hp|telepon|telp|e-?mail|whatsapp/i;
+
 const quoteSheet = (name: string) => `'${name.replace(/'/g, "''")}'`;
 
 export async function buildExcel(data: ServerDashboardData, scope: ReportScope): Promise<Buffer> {
@@ -39,11 +42,12 @@ export async function buildExcel(data: ServerDashboardData, scope: ReportScope):
     const segment = data.segments[seg];
     const report = buildSegmentReport(data, seg, scope.filters[seg]);
     const ws = wb.addWorksheet(segment.sheet, { views: [{ state: "frozen", ySplit: 1 }] });
-    ws.addRow(segment.headers);
+    const personal = segment.headers.map((header) => PERSONAL_DATA_HEADER.test(header));
+    ws.addRow(segment.headers.map((header, c) => (personal[c] ? "[data pribadi tidak diekspor]" : header)));
     const rows = report.responses.map((r) => r.rowIndex).sort((a, b) => a - b);
     for (const i of rows) {
       const raw = segment.rows[i] ?? [];
-      ws.addRow(segment.headers.map((_, c) => cellValue(raw[c]?.trim() ? raw[c] : undefined)));
+      ws.addRow(segment.headers.map((_, c) => (personal[c] ? null : cellValue(raw[c]?.trim() ? raw[c] : undefined))));
     }
     ws.columns.forEach((col, i) => {
       col.width = Math.min(40, Math.max(12, (segment.headers[i] ?? "").length > 60 ? 28 : 16));

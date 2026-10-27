@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { CONTENT_OPTIONS, applyFilters, type ContentKey, type Filters, type ReportScope } from "@/lib/filters";
+import { CONTENT_OPTIONS, KPI_OPTIONS, applyFilters, type ContentKey, type Filters, type ReportScope } from "@/lib/filters";
 import type { DashboardData } from "@/lib/sheets";
 import { formatMonth } from "./ui";
 
@@ -65,15 +65,15 @@ function SegmentFilters({
 }: {
   data: DashboardData;
   filters: Filters;
-  onChange: (key: keyof Filters, v: string) => void;
+  onChange: <K extends keyof Filters>(key: K, v: Filters[K]) => void;
 }) {
   const all = data.segments.airline.responses;
   const options = useMemo(
     () => ({
       months: [...new Set(all.map((r) => r.date.slice(0, 7)))].filter(Boolean).sort().reverse(),
+      airports: [...new Set(all.map((r) => r.airport))].filter(Boolean).sort(),
       airlines: [...new Set(all.map((r) => r.airline))].filter(Boolean).sort(),
       flightTypes: [...new Set(all.map((r) => r.flightType))].filter(Boolean).sort(),
-      travelPurposes: [...new Set(all.map((r) => r.travelPurpose))].filter(Boolean).sort(),
       routes: [...new Set(all.map((r) => r.route))].filter(Boolean).sort(),
     }),
     [all],
@@ -97,10 +97,11 @@ function SegmentFilters({
           allLabel="Semua periode"
           options={options.months.map((m) => ({ value: m, label: formatMonth(m) }))}
         />
+        {options.airports.length > 0 && <MiniSelect label="Stasiun Bandara" value={filters.airport} onChange={(v) => onChange("airport", v)} allLabel="Semua stasiun" options={options.airports.map((s) => ({ value: s, label: s }))} />}
         {options.airlines.length > 0 && <MiniSelect label="Maskapai" value={filters.airline} onChange={(v) => onChange("airline", v)} allLabel="Semua maskapai" options={options.airlines.map((s) => ({ value: s, label: s }))} />}
         {options.flightTypes.length > 0 && <MiniSelect label="Jenis penerbangan" value={filters.flightType} onChange={(v) => onChange("flightType", v)} allLabel="Semua jenis" options={options.flightTypes.map((s) => ({ value: s, label: s }))} />}
-        {options.travelPurposes.length > 0 && <MiniSelect label="Tujuan perjalanan" value={filters.travelPurpose} onChange={(v) => onChange("travelPurpose", v)} allLabel="Semua tujuan" options={options.travelPurposes.map((s) => ({ value: s, label: s }))} />}
         {options.routes.length > 0 && <MiniSelect label="Rute" value={filters.route} onChange={(v) => onChange("route", v)} allLabel="Semua rute" options={options.routes.map((s) => ({ value: s, label: s }))} />}
+        <MiniSelect label="KPI" value={filters.kpi} onChange={(v) => onChange("kpi", v as Filters["kpi"])} allLabel="Semua KPI" options={KPI_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
       </div>
     </fieldset>
   );

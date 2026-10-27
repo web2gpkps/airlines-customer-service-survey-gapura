@@ -9,6 +9,7 @@ export default async function Page() {
     const data = await getDashboardData();
     return <Dashboard data={toClientData(data)} />;
   } catch (err) {
+    console.error("Gagal memuat data survei:", err);
     return <LoadError message={err instanceof Error ? err.message : String(err)} />;
   }
 }

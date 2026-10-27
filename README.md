@@ -1,6 +1,6 @@
 # AIRLINE CSS SURVEY DASHBOARD
 
-Dashboard indeks kepuasan pelanggan maskapai dari tab `CSS Airline Tally` di [Google Sheets](https://docs.google.com/spreadsheets/d/1co2q6Xt0co2yoOyLN_vFE1FtWFlqyECdRGqMMVFNKfg/edit). Aplikasi membaca data dengan service account Google yang hanya memiliki akses baca. Judul halaman untuk Vercel: **Airline Customer CSS Survey**.
+Dashboard indeks kepuasan pelanggan maskapai dari tab `CSS Airline Tally` di Google Sheets (ID di `GOOGLE_SHEET_ID`). Aplikasi membaca data dengan service account Google yang hanya memiliki akses baca. Judul halaman untuk Vercel: **Airline Customer CSS Survey**.
 
 ## Menjalankan
 
@@ -14,15 +14,19 @@ Periksa dengan `npm run typecheck` dan `npm run build` sebelum memasang di Verce
 
 Satu tab sumber berisi identitas respons, waktu pengisian, profil perjalanan, 38 pertanyaan Likert, satu pertanyaan rekomendasi 0–10, dan tiga kolom komentar. Pertanyaan Likert dikelompokkan menjadi check-in, bagasi dan biaya, boarding, transit, gangguan dan komplain, Lost & Found, keamanan, serta kepuasan dan loyalitas. Pengelompokan ini didasarkan pada urutan dan isi header karena sheet tidak memiliki nama bagian tersendiri. Header baru yang belum dikenal tetap dihitung dalam **Pernyataan lainnya**.
 
+Parser mengenali kolom profil, NPS, dan komentar dari teks pertanyaannya, bukan dari nilai nomor urutnya. Lima kolom profil yang dipakai dashboard—maskapai, nomor penerbangan dan tanggal, rute, jenis penerbangan, serta tujuan perjalanan—dapat memakai awalan nomor atau tanpa nomor. Urutan kata `Tanggal & nomor penerbangan` dan `Nomor penerbangan & Tanggal` sama-sama didukung. Setiap label tetap dicocokkan secara penuh dari awal sampai akhir header; `Submission ID` dan `Submitted at` harus cocok persis, sedangkan label wajib yang tidak dikenal tetap menghasilkan error. Kolom nama penumpang, nomor HP, dan bandara tidak dipetakan ke model dashboard.
+
+Kolom Likert dapat memakai format `Pernyataan / Aspek yang Dinilai [teks]` atau format bernomor seperti `1. teks`. Untuk format bernomor, hanya teks yang cocok dengan katalog 38 pernyataan yang diterima; NPS, komentar, dan kolom bernomor lain tidak dianggap sebagai skor. Jika kedua format tersedia dalam satu sheet, parser memakai kelompok kolom yang berisi jawaban Likert 1–5 paling banyak. Perubahan ini hanya menangani struktur header sheet; akses Google Sheets tetap menggunakan service account dengan scope read-only.
+
 Indeks adalah rata-rata semua jawaban Likert 1–5 yang terisi, dibulatkan dua desimal sebelum kategori ditentukan. Nilai kosong tidak ikut dalam pembagi. KPI minimum **4,50** berlaku untuk indeks keseluruhan, bagian, dan pernyataan.
 
-| Indeks | Kategori | Status |
-|---|---|---|
-| ≤ 1,00 | Sangat tidak puas | Belum memenuhi standar |
-| 1,01–2,00 | Tidak puas | Belum memenuhi standar |
-| 2,01–3,00 | Cukup / netral | Belum memenuhi standar |
-| 3,01–4,49 | Puas | Perlu peningkatan / belum memenuhi standar |
-| 4,50–5,00 | Sangat puas | Memenuhi standar KPI |
+| Indeks    | Kategori          | Status                                     |
+| --------- | ----------------- | ------------------------------------------ |
+| ≤ 1,00    | Sangat tidak puas | Belum memenuhi standar                     |
+| 1,01–2,00 | Tidak puas        | Belum memenuhi standar                     |
+| 2,01–3,00 | Cukup / netral    | Belum memenuhi standar                     |
+| 3,01–4,49 | Puas              | Perlu peningkatan / belum memenuhi standar |
+| 4,50–5,00 | Sangat puas       | Memenuhi standar KPI                       |
 
 NPS dihitung terpisah dari indeks Likert. Filter memakai waktu `Submitted at`, maskapai, jenis penerbangan, tujuan perjalanan, dan rute bila tersedia. Bagian yang tidak punya sumber data disembunyikan.
 
@@ -34,11 +38,15 @@ Seluruh respons yang terbaca dari sheet diperlakukan sebagai data survei. Pertan
 
 ## Halaman dan ekspor
 
-| Rute | Fungsi |
-|---|---|
-| `/` | Dashboard dengan filter dan rincian survei. |
-| `/presentasi` | Laporan satu halaman yang dapat dibagikan lewat URL. |
-| `/api/export?format=pdf` | Unduh laporan PDF sesuai cakupan URL. |
+| Rute                      | Fungsi                                                                   |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `/`                       | Dashboard dengan filter dan rincian survei.                              |
+| `/presentasi`             | Laporan satu halaman yang dapat dibagikan lewat URL.                     |
+| `/api/export?format=pdf`  | Unduh laporan PDF sesuai cakupan URL.                                    |
 | `/api/export?format=xlsx` | Unduh sheet sumber terfilter, rekap dengan rumus, dan tabel standar KPI. |
 
 Dashboard mengambil ulang data tiap dua menit selama terbuka, halaman presentasi tiap lima menit. Server menyimpan hasil baca Sheets selama 60 detik. Tombol **Muat ulang** melewati cache tersebut.
+
+# Pemetaan UI Dashboard ke Kolom Google Sheet
+
+# File pemetaan sudah dibuat di docs/pemetaan-ui-kolom-sheet.md
