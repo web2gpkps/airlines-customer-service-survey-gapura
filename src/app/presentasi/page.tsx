@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { LoadError } from "@/components/LoadError";
 import { Presentation } from "@/components/Presentation";
+import { isAdmin } from "@/lib/admin";
 import { parseScope } from "@/lib/filters";
 import { getDashboardData, toClientData } from "@/lib/sheets";
 
@@ -16,6 +18,7 @@ export default async function PresentasiPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  if (!(await isAdmin())) redirect("/login");
   const query = parseScope(await searchParams);
   try {
     const data = await getDashboardData();

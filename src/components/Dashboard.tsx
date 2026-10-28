@@ -3,8 +3,9 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { Download, Presentation, RefreshCw, RotateCcw, Share2 } from "lucide-react";
-import { refreshData } from "@/app/actions";
+import Link from "next/link";
+import { ArrowLeft, Download, LogOut, Presentation, RefreshCw, RotateCcw, Share2, Users } from "lucide-react";
+import { logout, refreshData } from "@/app/actions";
 import { ALL_CONTENT, EMPTY_FILTERS, KPI_OPTIONS, applyFilters, hasFilters, type Filters, type ReportScope } from "@/lib/filters";
 import { buildSegmentReport } from "@/lib/report";
 import type { DashboardData } from "@/lib/sheets";
@@ -14,15 +15,22 @@ import { PresentationMode } from "./PresentationMode";
 import { SegmentView } from "./SegmentView";
 import { ExportDialog } from "./ExportDialog";
 import { ShareDialog } from "./ShareDialog";
+import { BranchShareDialog } from "./BranchShareDialog";
+import { TargetSampling } from "./TargetSampling";
+import type { TargetData } from "@/lib/target-shared";
 import { formatDateTime, formatMonth } from "./ui";
 import { useAutoRefresh } from "./useAutoRefresh";
 
 const AUTO_REFRESH_MS = 2 * 60_000;
 
-export function Dashboard({ data }: { data: DashboardData }) {
+/** main = dashboard utama; admin-cabang = halaman Share Akses Cabang (admin); cabang = halaman yang dibuka cabang lewat link. */
+export type DashboardVariant = "main" | "admin-cabang" | "cabang";
+
+export function Dashboard({ data, variant = "main", targets, branchCode }: { data: DashboardData; variant?: DashboardVariant; targets?: TargetData; branchCode?: string }) {
+  const isBranch = variant === "cabang";
   const router = useRouter();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [dialog, setDialog] = useState<"share" | "export" | null>(null);
+  const [dialog, setDialog] = useState<"share" | "export" | "branch" | null>(null);
   const [presenting, setPresenting] = useState(false);
   const [refreshing, startRefresh] = useTransition();
   useAutoRefresh(AUTO_REFRESH_MS);
@@ -66,13 +74,17 @@ export function Dashboard({ data }: { data: DashboardData }) {
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <p className="mr-1 text-right text-xs leading-snug text-muted">Data Realtime<br /><span className="font-medium text-ink-2">per {formatDateTime(data.fetchedAt)}</span></p>
-            <button onClick={() => startRefresh(async () => { await refreshData(); router.refresh(); })} disabled={refreshing} aria-label="Muat ulang data" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2 disabled:opacity-60">
+            {!isBranch && <button onClick={() => startRefresh(async () => { await refreshData(); router.refresh(); })} disabled={refreshing} aria-label="Muat ulang data" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2 disabled:opacity-60">
               <RefreshCw aria-hidden className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
               <span className="hidden lg:inline">{refreshing ? "Memuat…" : "Muat ulang"}</span>
-            </button>
+            </button>}
             <button onClick={startPresenting} aria-label="Mulai mode presentasi" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2"><Presentation aria-hidden className="size-4" /> <span className="hidden sm:inline">Presentasi</span></button>
             <button onClick={() => setDialog("export")} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2"><Download aria-hidden className="size-4" /> Export</button>
-            <button onClick={() => setDialog("share")} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"><Share2 aria-hidden className="size-4" /> Bagikan</button>
+            {variant === "main" && <button onClick={() => setDialog("share")} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"><Share2 aria-hidden className="size-4" /> Bagikan</button>}
+            {variant === "main" && <Link href="/akses-cabang" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand bg-card px-3.5 text-sm font-semibold text-brand transition-colors hover:bg-brand-wash"><Users aria-hidden className="size-4" /> Share Akses Cabang</Link>}
+            {variant === "admin-cabang" && <Link href="/" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2"><ArrowLeft aria-hidden className="size-4" /> Dashboard utama</Link>}
+            {variant === "admin-cabang" && <button onClick={() => setDialog("branch")} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"><Share2 aria-hidden className="size-4" /> Bagikan akses cabang</button>}
+            {!isBranch && <button onClick={() => logout()} aria-label="Keluar" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2"><LogOut aria-hidden className="size-4" /> <span className="hidden lg:inline">Keluar</span></button>}
           </div>
         </div>
       </header>
@@ -93,6 +105,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
       </div>
 
       <main className="mx-auto max-w-[1320px] px-4 pt-6 pb-16 sm:px-6 lg:px-8">
+        {targets && variant !== "main" && <div className="mb-5 lg:mb-6"><TargetSampling targets={targets} selectedAirports={filters.airport} /></div>}
         <SegmentView meta={SEGMENT_META.airline} sheet={segment.sheet} sections={segment.sections} responses={filtered} unmapped={segment.unmapped} hasFilters={hasFilters(filters)} />
       </main>
 
@@ -100,8 +113,9 @@ export function Dashboard({ data }: { data: DashboardData }) {
       {presenting && (
         <PresentationMode meta={SEGMENT_META.airline} sections={segment.sections} responses={filtered} filterText={filterText} onClose={closePresenting} />
       )}
-      <ShareDialog open={dialog === "share"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} />
-      <ExportDialog open={dialog === "export"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} />
+      {variant === "main" && <ShareDialog open={dialog === "share"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} />}
+      <ExportDialog open={dialog === "export"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} exportBase={isBranch && branchCode ? `/api/cabang-export/${encodeURIComponent(branchCode)}` : undefined} />
+      {variant === "admin-cabang" && <BranchShareDialog open={dialog === "branch"} onClose={() => setDialog(null)} />}
     </div>
   );
 }

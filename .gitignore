@@ -15,3 +15,6 @@ next-env.d.ts
 # Local tooling / file lokal
 .claude/
 httpsairline-*.txt
+
+# Penyimpanan link bagikan (simulasi lokal)
+.data/

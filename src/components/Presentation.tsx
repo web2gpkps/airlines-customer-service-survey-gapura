@@ -17,7 +17,7 @@ import { useAutoRefresh } from "./useAutoRefresh";
 
 const AUTO_REFRESH_MS = 5 * 60_000;
 
-export function Presentation({ data, query }: { data: DashboardData; query: ReportScope }) {
+export function Presentation({ data, query, publicView = false }: { data: DashboardData; query: ReportScope; publicView?: boolean }) {
   useAutoRefresh(AUTO_REFRESH_MS);
   const reports = useMemo(
     () => query.segments.map((seg) => buildSegmentReport(data, seg, query.filters[seg])),
@@ -34,7 +34,7 @@ export function Presentation({ data, query }: { data: DashboardData; query: Repo
           <span className="h-6 w-px bg-line-strong" aria-hidden />
           <span className="truncate text-sm font-bold tracking-tight text-ink">Airline CSS Survey</span>
           <span className="ml-auto hidden text-xs text-muted lg:inline">Data per {formatDateTime(data.fetchedAt)}</span>
-          <ExportMenu scope={query} />
+          {!publicView && <ExportMenu scope={query} />}
         </div>
       </header>
 

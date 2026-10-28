@@ -49,7 +49,8 @@ export async function getDashboardData(): Promise<ServerDashboardData> {
   return data;
 }
 
-async function fetchDashboardData(): Promise<ServerDashboardData> {
+/** Akses baca-saja ke spreadsheet (dipakai juga oleh pembaca sheet Target Sampling). */
+export async function getSheetsAccess(): Promise<{ base: string; headers: { Authorization: string } }> {
   const account = getServiceAccount();
   const client = new JWT({
     email: account.client_email,
@@ -57,8 +58,11 @@ async function fetchDashboardData(): Promise<ServerDashboardData> {
     scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
   });
   const { token } = await client.getAccessToken();
-  const headers = { Authorization: `Bearer ${token}` };
-  const base = `https://sheets.googleapis.com/v4/spreadsheets/${getSheetId()}`;
+  return { base: `https://sheets.googleapis.com/v4/spreadsheets/${getSheetId()}`, headers: { Authorization: `Bearer ${token}` } };
+}
+
+async function fetchDashboardData(): Promise<ServerDashboardData> {
+  const { base, headers } = await getSheetsAccess();
   const sheet = SEGMENT_META.airline.sheet;
 
   const metaRes = await fetch(`${base}?fields=sheets.properties.title`, { headers, cache: "no-store" });

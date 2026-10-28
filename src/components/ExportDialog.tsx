@@ -10,7 +10,9 @@ export function ExportDialog({
   onClose,
   data,
   initialScope,
+  exportBase,
 }: {
+  exportBase?: string;
   open: boolean;
   onClose: () => void;
   data: DashboardData;
@@ -24,7 +26,7 @@ export function ExportDialog({
       onClose={onClose}
       title="Export data"
       description="File dibuat dari data Google Sheets terbaru sesuai pilihan di bawah."
-      footer={<ExportButtons scope={scope} />}
+      footer={<ExportButtons scope={scope} base={exportBase} />}
     >
       <ScopePicker
         data={data}
@@ -36,27 +38,27 @@ export function ExportDialog({
   );
 }
 
-export function ExportButtons({ scope, compact = false }: { scope: ReportScope; compact?: boolean }) {
+export function ExportButtons({ scope, compact = false, base }: { scope: ReportScope; compact?: boolean; base?: string }) {
   const cls = compact
     ? "flex min-h-10 items-center gap-2.5 rounded-md px-3 text-sm font-semibold text-ink hover:bg-sunken"
     : "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-line-strong bg-card px-4 text-sm font-semibold text-ink hover:border-ink-2";
   return (
     <div className={compact ? "grid" : "flex flex-col gap-2 sm:flex-row"}>
-      <a href={exportUrl(scope, "pdf")} download className={cls}>
+      <a href={exportUrl(scope, "pdf", base)} download className={cls}>
         <FileText aria-hidden className="size-4 text-crit" />
         <span>
           PDF
           <span className="ml-1.5 font-normal text-muted">laporan A4</span>
         </span>
       </a>
-      <a href={exportUrl(scope, "pdf-slide")} download className={cls}>
+      <a href={exportUrl(scope, "pdf-slide", base)} download className={cls}>
         <FileText aria-hidden className="size-4 text-crit" />
         <span>
           PDF Slide
           <span className="ml-1.5 font-normal text-muted">landscape 16:9</span>
         </span>
       </a>
-      <a href={exportUrl(scope, "xlsx")} download className={cls}>
+      <a href={exportUrl(scope, "xlsx", base)} download className={cls}>
         <FileSpreadsheet aria-hidden className="size-4 text-good" />
         <span>
           Excel
