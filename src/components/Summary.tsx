@@ -4,9 +4,11 @@ import {
   formatIndex,
   meetsKpi,
   type NpsResult,
+  type Response,
   type SurveyResult,
 } from "@/lib/scoring";
 import type { SegmentMeta } from "@/lib/survey-config";
+import { NpsDetailButton } from "./NpsDetail";
 import { StatusBadge, toneMark, toneText } from "./ui";
 
 const pos = (v: number) => `${((Math.min(Math.max(v, 1), 5) - 1) / 4) * 100}%`;
@@ -120,11 +122,13 @@ export function SummaryTiles({
   meta,
   result,
   nps,
+  responses,
   className = "",
 }: {
   meta: SegmentMeta;
   result: SurveyResult;
   nps: NpsResult;
+  responses?: Response[];
   className?: string;
 }) {
   const sectionsMet = result.sections.filter((s) => meetsKpi(s.index)).length;
@@ -187,6 +191,7 @@ export function SummaryTiles({
                 <span className="block"><b className="text-ink">{nps.passives}</b> pasif (skor 7–8) · puas tapi biasa saja</span>
                 <span className="block"><b className="text-ink">{nps.detractors}</b> detraktor (skor 0–6) · kurang puas, berisiko tidak merekomendasikan</span>
               </span>
+              {responses && <NpsDetailButton responses={responses} />}
             </span>
           ) : (
             "Belum ada yang menjawab"

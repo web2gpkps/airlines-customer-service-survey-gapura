@@ -109,7 +109,9 @@ export function Modal({
   description,
   children,
   footer,
+  wide = false,
 }: {
+  wide?: boolean;
   open: boolean;
   onClose: () => void;
   title: string;
@@ -131,7 +133,7 @@ export function Modal({
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       aria-label={title}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[min(640px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-card p-0 text-ink shadow-2xl backdrop:bg-ink/40 backdrop:backdrop-blur-[2px] open:flex open:flex-col"
+      className={`m-auto max-h-[calc(100dvh-2rem)] ${wide ? "w-[min(980px,calc(100vw-2rem))]" : "w-[min(640px,calc(100vw-2rem))]"} overflow-hidden rounded-2xl border border-line bg-card p-0 text-ink shadow-2xl backdrop:bg-ink/40 backdrop:backdrop-blur-[2px] open:flex open:flex-col`}
     >
       <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
         <div>

@@ -62,7 +62,7 @@ export function SegmentView({
 
       <section aria-label="Ringkasan index" className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-12 lg:gap-6">
         <HeroIndex meta={meta} result={result} className="min-w-0 lg:col-span-7" />
-        <SummaryTiles meta={meta} result={result} nps={nps} className="min-w-0 lg:col-span-5" />
+        <SummaryTiles meta={meta} result={result} nps={nps} responses={responses} className="min-w-0 lg:col-span-5" />
       </section>
 
       <SectionIndex result={result} />

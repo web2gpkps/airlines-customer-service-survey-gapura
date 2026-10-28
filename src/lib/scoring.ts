@@ -173,6 +173,34 @@ export function computeNps(responses: Response[]): NpsResult {
   return { score: n ? Math.round(((promoters - detractors) / n) * 100) : null, promoters, passives, detractors, n };
 }
 
+export interface NpsRow extends NpsResult {
+  /** Kunci pengelompokan (huruf kecil), dipakai untuk mencocokkan responden ke baris ini. */
+  id: string;
+  label: string;
+}
+
+export const npsGroupId = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
+
+/** Rincian NPS per stasiun atau maskapai. Penulisan yang hanya beda huruf besar/kecil digabung; kolom kosong jadi "Tidak diisi". */
+export function npsBreakdown(responses: Response[], key: "airport" | "airline"): NpsRow[] {
+  const groups = new Map<string, { spellings: Map<string, number>; items: Response[] }>();
+  for (const r of responses) {
+    if (r.nps === null) continue;
+    const raw = r[key].trim().replace(/\s+/g, " ");
+    const id = npsGroupId(raw);
+    const group = groups.get(id) ?? { spellings: new Map<string, number>(), items: [] as Response[] };
+    group.spellings.set(raw, (group.spellings.get(raw) ?? 0) + 1);
+    group.items.push(r);
+    groups.set(id, group);
+  }
+  return [...groups.entries()]
+    .map(([id, { spellings, items }]) => {
+      const label = id === "" ? "Tidak diisi" : [...spellings.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      return { id, label, ...computeNps(items) };
+    })
+    .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
+}
+
 /** Index keseluruhan per minggu (Senin–Minggu) untuk grafik tren. */
 export function weeklyTrend(defs: SectionDef[], responses: Response[]) {
   const buckets = new Map<string, Response[]>();

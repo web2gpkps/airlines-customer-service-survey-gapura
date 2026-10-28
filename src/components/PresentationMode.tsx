@@ -41,7 +41,7 @@ export function PresentationMode({
         body: (
           <section className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-12">
             <HeroIndex meta={meta} result={result} large className="min-w-0 lg:col-span-7" />
-            <SummaryTiles meta={meta} result={result} nps={nps} className="min-w-0 lg:col-span-5" />
+            <SummaryTiles meta={meta} result={result} nps={nps} responses={responses} className="min-w-0 lg:col-span-5" />
           </section>
         ),
       },
