@@ -2,13 +2,15 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
-import { Download, RefreshCw, RotateCcw, Share2 } from "lucide-react";
+import { useCallback, useMemo, useState, useTransition } from "react";
+import { Download, Presentation, RefreshCw, RotateCcw, Share2 } from "lucide-react";
 import { refreshData } from "@/app/actions";
 import { ALL_CONTENT, EMPTY_FILTERS, KPI_OPTIONS, applyFilters, hasFilters, type Filters, type ReportScope } from "@/lib/filters";
+import { buildSegmentReport } from "@/lib/report";
 import type { DashboardData } from "@/lib/sheets";
 import { SEGMENT_META } from "@/lib/survey-config";
 import { MultiSelect } from "./MultiSelect";
+import { PresentationMode } from "./PresentationMode";
 import { SegmentView } from "./SegmentView";
 import { ExportDialog } from "./ExportDialog";
 import { ShareDialog } from "./ShareDialog";
@@ -21,6 +23,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
   const router = useRouter();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [dialog, setDialog] = useState<"share" | "export" | null>(null);
+  const [presenting, setPresenting] = useState(false);
   const [refreshing, startRefresh] = useTransition();
   useAutoRefresh(AUTO_REFRESH_MS);
 
@@ -36,6 +39,16 @@ export function Dashboard({ data }: { data: DashboardData }) {
       routes: [...new Set(all.map((r) => r.route))].filter(Boolean).sort(),
     };
   }, [segment.responses]);
+  const filterText = useMemo(
+    () => (presenting ? buildSegmentReport(data, "airline", filters).filterText : ""),
+    [presenting, data, filters],
+  );
+  const closePresenting = useCallback(() => setPresenting(false), []);
+  // Harus dipanggil langsung dari klik pengguna agar browser mengizinkan layar penuh.
+  const startPresenting = () => {
+    setPresenting(true);
+    void document.documentElement.requestFullscreen?.().catch(() => {});
+  };
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => setFilters((prev) => ({ ...prev, [key]: value }));
   const currentScope = (): ReportScope => ({ segments: ["airline"], filters: { airline: filters }, content: [...ALL_CONTENT] });
 
@@ -57,6 +70,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
               <RefreshCw aria-hidden className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
               <span className="hidden lg:inline">{refreshing ? "Memuat…" : "Muat ulang"}</span>
             </button>
+            <button onClick={startPresenting} aria-label="Mulai mode presentasi" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2"><Presentation aria-hidden className="size-4" /> <span className="hidden sm:inline">Presentasi</span></button>
             <button onClick={() => setDialog("export")} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2"><Download aria-hidden className="size-4" /> Export</button>
             <button onClick={() => setDialog("share")} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"><Share2 aria-hidden className="size-4" /> Bagikan</button>
           </div>
@@ -83,6 +97,9 @@ export function Dashboard({ data }: { data: DashboardData }) {
       </main>
 
       <footer className="border-t border-line bg-card"><div className="mx-auto flex max-w-[1320px] flex-wrap justify-between gap-2 px-4 py-5 text-xs text-muted sm:px-6 lg:px-8"><span>PT Gapura Angkasa · Survei kepuasan pelanggan maskapai</span><span>Data diperbarui otomatis tiap 2 menit selama halaman terbuka</span></div></footer>
+      {presenting && (
+        <PresentationMode meta={SEGMENT_META.airline} sections={segment.sections} responses={filtered} filterText={filterText} onClose={closePresenting} />
+      )}
       <ShareDialog open={dialog === "share"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} />
       <ExportDialog open={dialog === "export"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} />
     </div>
