@@ -8,6 +8,7 @@ import { refreshData } from "@/app/actions";
 import { ALL_CONTENT, EMPTY_FILTERS, KPI_OPTIONS, applyFilters, hasFilters, type Filters, type ReportScope } from "@/lib/filters";
 import type { DashboardData } from "@/lib/sheets";
 import { SEGMENT_META } from "@/lib/survey-config";
+import { MultiSelect } from "./MultiSelect";
 import { SegmentView } from "./SegmentView";
 import { ExportDialog } from "./ExportDialog";
 import { ShareDialog } from "./ShareDialog";
@@ -64,12 +65,12 @@ export function Dashboard({ data }: { data: DashboardData }) {
 
       <div className="border-b border-line bg-card">
         <div className="mx-auto flex max-w-[1320px] flex-wrap items-end gap-3 px-4 py-4 sm:px-6 lg:px-8">
-          {options.months.length > 0 && <FilterSelect label="Periode" value={filters.month} onChange={(v) => setFilter("month", v)} allLabel="Semua periode" options={options.months.map((m) => ({ value: m, label: formatMonth(m) }))} />}
-          {options.airports.length > 0 && <FilterSelect label="Stasiun Bandara" value={filters.airport} onChange={(v) => setFilter("airport", v)} allLabel="Semua stasiun" options={options.airports.map((v) => ({ value: v, label: v }))} />}
-          {options.airlines.length > 0 && <FilterSelect label="Maskapai" value={filters.airline} onChange={(v) => setFilter("airline", v)} allLabel="Semua maskapai" options={options.airlines.map((v) => ({ value: v, label: v }))} />}
-          {options.flightTypes.length > 0 && <FilterSelect label="Jenis penerbangan" value={filters.flightType} onChange={(v) => setFilter("flightType", v)} allLabel="Semua jenis" options={options.flightTypes.map((v) => ({ value: v, label: v }))} />}
-          {options.routes.length > 0 && <FilterSelect label="Rute" value={filters.route} onChange={(v) => setFilter("route", v)} allLabel="Semua rute" options={options.routes.map((v) => ({ value: v, label: v }))} />}
-          <FilterSelect label="KPI" value={filters.kpi} onChange={(v) => setFilter("kpi", v as Filters["kpi"])} allLabel="Semua KPI" options={[...KPI_OPTIONS]} />
+          {options.months.length > 0 && <MultiSelect className="flex-1 basis-44 sm:max-w-60" label="Periode" values={filters.month} onChange={(v) => setFilter("month", v)} allLabel="Semua periode" options={options.months.map((m) => ({ value: m, label: formatMonth(m) }))} />}
+          {options.airports.length > 0 && <MultiSelect className="flex-1 basis-44 sm:max-w-60" label="Stasiun Bandara" values={filters.airport} onChange={(v) => setFilter("airport", v)} allLabel="Semua stasiun" options={options.airports.map((v) => ({ value: v, label: v }))} />}
+          {options.airlines.length > 0 && <MultiSelect className="flex-1 basis-44 sm:max-w-60" label="Maskapai" values={filters.airline} onChange={(v) => setFilter("airline", v)} allLabel="Semua maskapai" options={options.airlines.map((v) => ({ value: v, label: v }))} />}
+          {options.flightTypes.length > 0 && <MultiSelect className="flex-1 basis-44 sm:max-w-60" label="Jenis penerbangan" values={filters.flightType} onChange={(v) => setFilter("flightType", v)} allLabel="Semua jenis" options={options.flightTypes.map((v) => ({ value: v, label: v }))} />}
+          {options.routes.length > 0 && <MultiSelect className="flex-1 basis-44 sm:max-w-60" label="Rute" values={filters.route} onChange={(v) => setFilter("route", v)} allLabel="Semua rute" options={options.routes.map((v) => ({ value: v, label: v }))} />}
+          <MultiSelect className="flex-1 basis-44 sm:max-w-60" label="KPI" values={filters.kpi} onChange={(v) => setFilter("kpi", v as Filters["kpi"])} allLabel="Semua KPI" options={[...KPI_OPTIONS]} />
           <div className="flex min-h-11 items-center gap-3 sm:ml-auto">
             <p className="text-sm text-muted" aria-live="polite"><span className="num font-bold text-ink">{filtered.length}</span> dari <span className="num">{segment.responses.length}</span> respons</p>
             {hasFilters(filters) && <button onClick={() => setFilters(EMPTY_FILTERS)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-brand hover:bg-brand-wash"><RotateCcw aria-hidden className="size-3.5" /> Hapus filter</button>}
@@ -86,8 +87,4 @@ export function Dashboard({ data }: { data: DashboardData }) {
       <ExportDialog open={dialog === "export"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} />
     </div>
   );
-}
-
-function FilterSelect({ label, value, onChange, options, allLabel }: { label: string; value: string; onChange: (value: string) => void; options: { value: string; label: string }[]; allLabel: string }) {
-  return <label className="flex min-w-0 flex-1 basis-44 flex-col gap-1 sm:max-w-60"><span className="eyebrow">{label}</span><select className="select" value={value} onChange={(e) => onChange(e.target.value)}><option value="">{allLabel}</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
 }

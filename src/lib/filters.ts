@@ -1,16 +1,22 @@
 import { meetsKpi, type Response } from "./scoring";
 import { SEGMENT_IDS, type Segment } from "./survey-config";
 
+/** Tiap filter menyimpan daftar pilihan; daftar kosong berarti semua data. */
 export interface Filters {
-  month: string;
-  airport: string;
-  airline: string;
-  flightType: string;
-  route: string;
-  kpi: "" | "met" | "unmet";
+  month: string[];
+  airport: string[];
+  airline: string[];
+  flightType: string[];
+  route: string[];
+  kpi: ("met" | "unmet")[];
 }
 
-export const EMPTY_FILTERS: Filters = { month: "", airport: "", airline: "", flightType: "", route: "", kpi: "" };
+export const EMPTY_FILTERS: Filters = { month: [], airport: [], airline: [], flightType: [], route: [], kpi: [] };
+
+const MAX_VALUES = 100;
+const MAX_VALUE_LENGTH = 120;
+
+const matches = (selected: string[], value: string) => !selected.length || selected.includes(value);
 
 export const KPI_OPTIONS = [
   { value: "met", label: "Memenuhi standar (≥ 4,50)" },
@@ -26,16 +32,16 @@ function respondentIndex(r: Response): number | null {
 export function applyFilters(responses: Response[], f: Filters) {
   return responses.filter(
     (r) =>
-      (!f.month || r.date.startsWith(f.month)) &&
-      (!f.airport || r.airport === f.airport) &&
-      (!f.airline || r.airline === f.airline) &&
-      (!f.flightType || r.flightType === f.flightType) &&
-      (!f.route || r.route === f.route) &&
-      (!f.kpi || meetsKpi(respondentIndex(r)) === (f.kpi === "met")),
+      (!f.month.length || f.month.some((m) => r.date.startsWith(m))) &&
+      matches(f.airport, r.airport) &&
+      matches(f.airline, r.airline) &&
+      matches(f.flightType, r.flightType) &&
+      matches(f.route, r.route) &&
+      (f.kpi.length !== 1 || meetsKpi(respondentIndex(r)) === (f.kpi[0] === "met")),
   );
 }
 
-export const hasFilters = (f: Filters) => Boolean(f.month || f.airport || f.airline || f.flightType || f.route || f.kpi);
+export const hasFilters = (f: Filters) => Object.values(f).some((values) => values.length > 0);
 
 export const CONTENT_OPTIONS = [
   { key: "ringkasan", label: "Ringkasan index" },
@@ -70,8 +76,7 @@ export function scopeToSearch(q: ReportScope): string {
   params.set("segmen", q.segments.join(","));
   for (const seg of q.segments) {
     for (const key of Object.keys(PARAM) as (keyof Filters)[]) {
-      const v = q.filters[seg][key];
-      if (v) params.set(`${seg}.${PARAM[key]}`, v);
+      for (const v of q.filters[seg][key]) params.append(`${seg}.${PARAM[key]}`, v);
     }
   }
   if (q.content.length < ALL_CONTENT.length) params.set("konten", q.content.join(","));
@@ -81,7 +86,12 @@ export function scopeToSearch(q: ReportScope): string {
 export function parseScope(sp: Record<string, string | string[] | undefined> | URLSearchParams): ReportScope {
   const get = (k: string) => {
     const v = sp instanceof URLSearchParams ? sp.get(k) : sp[k];
-    return (Array.isArray(v) ? v[0] : v)?.trim().slice(0, 120) ?? "";
+    return (Array.isArray(v) ? v[0] : v)?.trim().slice(0, MAX_VALUE_LENGTH) ?? "";
+  };
+  const getAll = (k: string): string[] => {
+    const v = sp instanceof URLSearchParams ? sp.getAll(k) : sp[k];
+    const list = Array.isArray(v) ? v : v ? [v] : [];
+    return [...new Set(list.map((s) => s.trim().slice(0, MAX_VALUE_LENGTH)).filter(Boolean))].slice(0, MAX_VALUES);
   };
   const segments = get("segmen")
     .split(",")
@@ -89,12 +99,12 @@ export function parseScope(sp: Record<string, string | string[] | undefined> | U
     .filter((s): s is Segment => (SEGMENT_IDS as string[]).includes(s));
   const filters: Record<Segment, Filters> = {
     airline: {
-      month: get("airline.periode"),
-      airport: get("airline.stasiun"),
-      airline: get("airline.maskapai"),
-      flightType: get("airline.jenis"),
-      route: get("airline.rute"),
-      kpi: ((k) => (k === "met" || k === "unmet" ? k : ""))(get("airline.kpi")),
+      month: getAll("airline.periode"),
+      airport: getAll("airline.stasiun"),
+      airline: getAll("airline.maskapai"),
+      flightType: getAll("airline.jenis"),
+      route: getAll("airline.rute"),
+      kpi: getAll("airline.kpi").filter((k): k is "met" | "unmet" => k === "met" || k === "unmet"),
     },
   };
   const content = get("konten")
@@ -108,7 +118,7 @@ export function parseScope(sp: Record<string, string | string[] | undefined> | U
   };
 }
 
-export type ExportFormat = "pdf" | "xlsx";
+export type ExportFormat = "pdf" | "pdf-slide" | "xlsx";
 
 export const exportUrl = (scope: ReportScope, format: ExportFormat) =>
   `/api/export?format=${format}&${scopeToSearch(scope)}`;

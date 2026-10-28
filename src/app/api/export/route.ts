@@ -1,5 +1,6 @@
 import { buildExcel } from "@/lib/export/excel";
 import { buildPdf } from "@/lib/export/pdf";
+import { buildSlidesPdf } from "@/lib/export/pdf-slides";
 import { parseScope } from "@/lib/filters";
 import { getDashboardData } from "@/lib/sheets";
 
@@ -33,14 +34,15 @@ export async function GET(request: Request) {
     });
   }
   const params = new URL(request.url).searchParams;
-  const format = params.get("format") === "xlsx" ? "xlsx" : "pdf";
+  const requested = params.get("format");
+  const format = requested === "xlsx" ? "xlsx" : requested === "pdf-slide" ? "pdf-slide" : "pdf";
   const scope = parseScope(params);
 
   try {
     const data = await getDashboardData();
-    const body = format === "xlsx" ? await buildExcel(data, scope) : buildPdf(data, scope);
+    const body = format === "xlsx" ? await buildExcel(data, scope) : format === "pdf-slide" ? buildSlidesPdf(data, scope) : buildPdf(data, scope);
     const stamp = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Jakarta" }).format(new Date(data.fetchedAt));
-    const name = `Airline-CSS-Survey-${stamp}.${format}`;
+    const name = `Airline-CSS-Survey-${stamp}${format === "pdf-slide" ? "-slide" : ""}.${format === "xlsx" ? "xlsx" : "pdf"}`;
     return new Response(new Uint8Array(body), {
       headers: {
         "Content-Type":

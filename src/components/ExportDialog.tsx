@@ -30,7 +30,7 @@ export function ExportDialog({
         data={data}
         value={scope}
         onChange={setScope}
-        contentNote="Pilihan konten berlaku untuk PDF. Excel selalu berisi salinan sheet Tally dan rekap lengkapnya."
+        contentNote="Pilihan konten berlaku untuk PDF dan PDF Slide. Excel selalu berisi salinan sheet Tally dan rekap lengkapnya."
       />
     </Modal>
   );
@@ -46,7 +46,14 @@ export function ExportButtons({ scope, compact = false }: { scope: ReportScope; 
         <FileText aria-hidden className="size-4 text-crit" />
         <span>
           PDF
-          <span className="ml-1.5 font-normal text-muted">laporan index</span>
+          <span className="ml-1.5 font-normal text-muted">laporan A4</span>
+        </span>
+      </a>
+      <a href={exportUrl(scope, "pdf-slide")} download className={cls}>
+        <FileText aria-hidden className="size-4 text-crit" />
+        <span>
+          PDF Slide
+          <span className="ml-1.5 font-normal text-muted">landscape 16:9</span>
         </span>
       </a>
       <a href={exportUrl(scope, "xlsx")} download className={cls}>

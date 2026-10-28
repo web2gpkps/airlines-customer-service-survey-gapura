@@ -47,12 +47,12 @@ export function buildSegmentReport(data: DashboardData, seg: Segment, filters: F
   const segment = data.segments[seg];
   const responses = applyFilters(segment.responses, filters);
   const filterText = [
-    filters.month && `Periode ${filters.month}`,
-    filters.airport && `Stasiun ${filters.airport}`,
-    filters.airline && `Maskapai ${filters.airline}`,
-    filters.flightType && `Jenis penerbangan ${filters.flightType}`,
-    filters.route && `Rute ${filters.route}`,
-    filters.kpi && `KPI ${filters.kpi === "met" ? "memenuhi standar" : "belum memenuhi"}`,
+    filters.month.length > 0 && `Periode ${filters.month.join(", ")}`,
+    filters.airport.length > 0 && `Stasiun ${filters.airport.join(", ")}`,
+    filters.airline.length > 0 && `Maskapai ${filters.airline.join(", ")}`,
+    filters.flightType.length > 0 && `Jenis penerbangan ${filters.flightType.join(", ")}`,
+    filters.route.length > 0 && `Rute ${filters.route.join(", ")}`,
+    filters.kpi.length === 1 && `KPI ${filters.kpi[0] === "met" ? "memenuhi standar" : "belum memenuhi"}`,
   ].filter(Boolean).join(" · ") || "Semua respons";
   return {
     seg,

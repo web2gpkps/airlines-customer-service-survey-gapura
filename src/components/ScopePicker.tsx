@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { CONTENT_OPTIONS, KPI_OPTIONS, applyFilters, type ContentKey, type Filters, type ReportScope } from "@/lib/filters";
 import type { DashboardData } from "@/lib/sheets";
+import { MultiSelect } from "./MultiSelect";
 import { formatMonth } from "./ui";
 
 export function ScopePicker({
@@ -17,7 +18,7 @@ export function ScopePicker({
   onChange: (next: ReportScope) => void;
   contentNote?: string;
 }) {
-  const setFilter = (key: keyof Filters, v: string) =>
+  const setFilter = <K extends keyof Filters>(key: K, v: Filters[K]) =>
     onChange({ ...value, filters: { airline: { ...value.filters.airline, [key]: v } } });
 
   const toggleContent = (key: ContentKey) => {
@@ -90,48 +91,14 @@ function SegmentFilters({
         <span className={`num text-xs ${count ? "text-muted" : "font-semibold text-crit"}`}>{count} respons</span>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        <MiniSelect
-          label="Periode"
-          value={filters.month}
-          onChange={(v) => onChange("month", v)}
-          allLabel="Semua periode"
-          options={options.months.map((m) => ({ value: m, label: formatMonth(m) }))}
-        />
-        {options.airports.length > 0 && <MiniSelect label="Stasiun Bandara" value={filters.airport} onChange={(v) => onChange("airport", v)} allLabel="Semua stasiun" options={options.airports.map((s) => ({ value: s, label: s }))} />}
-        {options.airlines.length > 0 && <MiniSelect label="Maskapai" value={filters.airline} onChange={(v) => onChange("airline", v)} allLabel="Semua maskapai" options={options.airlines.map((s) => ({ value: s, label: s }))} />}
-        {options.flightTypes.length > 0 && <MiniSelect label="Jenis penerbangan" value={filters.flightType} onChange={(v) => onChange("flightType", v)} allLabel="Semua jenis" options={options.flightTypes.map((s) => ({ value: s, label: s }))} />}
-        {options.routes.length > 0 && <MiniSelect label="Rute" value={filters.route} onChange={(v) => onChange("route", v)} allLabel="Semua rute" options={options.routes.map((s) => ({ value: s, label: s }))} />}
-        <MiniSelect label="KPI" value={filters.kpi} onChange={(v) => onChange("kpi", v as Filters["kpi"])} allLabel="Semua KPI" options={KPI_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
+        <MultiSelect compact label="Periode" values={filters.month} onChange={(v) => onChange("month", v)} allLabel="Semua periode" options={options.months.map((m) => ({ value: m, label: formatMonth(m) }))} />
+        {options.airports.length > 0 && <MultiSelect compact label="Stasiun Bandara" values={filters.airport} onChange={(v) => onChange("airport", v)} allLabel="Semua stasiun" options={options.airports.map((s) => ({ value: s, label: s }))} />}
+        {options.airlines.length > 0 && <MultiSelect compact label="Maskapai" values={filters.airline} onChange={(v) => onChange("airline", v)} allLabel="Semua maskapai" options={options.airlines.map((s) => ({ value: s, label: s }))} />}
+        {options.flightTypes.length > 0 && <MultiSelect compact label="Jenis penerbangan" values={filters.flightType} onChange={(v) => onChange("flightType", v)} allLabel="Semua jenis" options={options.flightTypes.map((s) => ({ value: s, label: s }))} />}
+        {options.routes.length > 0 && <MultiSelect compact label="Rute" values={filters.route} onChange={(v) => onChange("route", v)} allLabel="Semua rute" options={options.routes.map((s) => ({ value: s, label: s }))} />}
+        <MultiSelect compact label="KPI" values={filters.kpi} onChange={(v) => onChange("kpi", v as Filters["kpi"])} allLabel="Semua KPI" options={KPI_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
       </div>
     </fieldset>
-  );
-}
-
-function MiniSelect({
-  label,
-  value,
-  onChange,
-  options,
-  allLabel,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-  allLabel: string;
-}) {
-  return (
-    <label className="flex min-w-0 flex-col gap-1">
-      <span className="text-[11px] font-medium text-muted">{label}</span>
-      <select className="select !min-h-11 !py-1.5 !text-[13px]" value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">{allLabel}</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 
