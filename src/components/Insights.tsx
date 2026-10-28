@@ -267,7 +267,7 @@ export function Methodology({ label, sheet, overall }: { label?: string; sheet?:
                       {c.label}
                       {isCurrent && label && (
                         <span className="ml-2 inline-block rounded bg-ink px-1.5 py-0.5 font-mono text-[10px] whitespace-nowrap font-semibold text-white">
-                          KPI CSS {label} Saat Ini
+                          KPI CSS {label} Saat Ini{typeof overall === "number" ? ` · ${formatIndex(overall)}` : ""}
                         </span>
                       )}
                       <span className="mt-1.5 block sm:hidden">

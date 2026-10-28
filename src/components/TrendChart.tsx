@@ -109,6 +109,21 @@ export function TrendPlot({ points, height = 260 }: { points: Point[]; height?: 
                     />
                   );
                 })}
+                {/* Angka index di setiap titik */}
+                {data.map((d, i) => (
+                  <text
+                    key={`v-${d.week}`}
+                    x={x(i)}
+                    y={y(d.index) - 11}
+                    textAnchor="middle"
+                    className="num fill-ink font-mono text-[11px] font-bold"
+                    stroke="#ffffff"
+                    strokeWidth={3}
+                    paintOrder="stroke"
+                  >
+                    {formatIndex(d.index)}
+                  </text>
+                ))}
                 {data.map((d, i) => (
                   <text
                     key={d.week}

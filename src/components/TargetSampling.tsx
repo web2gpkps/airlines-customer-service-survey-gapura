@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, TriangleAlert } from "lucide-react";
-import { OUTSIDE_REASON_LABEL, stationCode, type TargetBlock, type TargetData } from "@/lib/target-shared";
+import { OUTSIDE_REASON_LABEL, stationCode, type OutsideGroup, type TargetBlock, type TargetData } from "@/lib/target-shared";
 import { CardHeader } from "./ui";
 
 const pctText = (p: number | null) => (p === null ? "–" : `${Math.round(p * 100)}%`);
@@ -33,13 +33,63 @@ function Bar({ pct }: { pct: number | null }) {
   );
 }
 
-function BlockTable({ block, defaultOpen }: { block: TargetBlock; defaultOpen: boolean }) {
+const sumCount = (groups: OutsideGroup[]) => groups.reduce((a, g) => a + g.count, 0);
+
+/** Baris respons yang tidak masuk panduan sampling cabang ini: tetap ditampilkan, berwarna merah. */
+function OutsideRows({ code, groups }: { code: string; groups: OutsideGroup[] }) {
+  if (!groups.length) return null;
+  return (
+    <>
+      <tr className="border-t-2 border-warn-mark bg-warn-wash">
+        <td colSpan={7} className="py-1.5 pr-3 pl-2 text-xs font-bold text-crit">
+          Di luar panduan sampling cabang {code}: {sumCount(groups)} respons (tidak dihitung ke Terkumpul)
+        </td>
+      </tr>
+      {groups.map((g) => (
+        <tr key={`${g.airline}|${g.reason}`} className="border-t border-line bg-warn-wash align-top text-crit">
+          <td className="py-2 pr-3 pl-2 font-medium">{g.airline}</td>
+          <td className="py-2 pr-3">{OUTSIDE_REASON_LABEL[g.reason]}</td>
+          <td className="num py-2 pr-3 text-right">–</td>
+          <td className="num py-2 pr-3 text-right font-bold">{g.count}</td>
+          <td className="num py-2 pr-3 text-right">–</td>
+          <td className="py-2 pr-3">–</td>
+          <td className="num py-2 text-right">–</td>
+        </tr>
+      ))}
+    </>
+  );
+}
+
+function OutsideOnlyBlock({ code, groups, defaultOpen }: { code: string; groups: OutsideGroup[]; defaultOpen: boolean }) {
+  return (
+    <details className="group border-t border-line first:border-t-0" open={defaultOpen || undefined}>
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 bg-warn-wash px-5 py-3 sm:px-6">
+        <ChevronDown aria-hidden className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" />
+        <span className="w-12 font-bold text-ink">{code}</span>
+        <span className="min-w-0 flex-1 basis-48 text-xs font-semibold text-crit">Cabang tidak ada di panduan target sampling</span>
+        <span className="num text-sm font-bold text-crit">{sumCount(groups)} respons di luar panduan</span>
+      </summary>
+      <div className="overflow-x-auto px-5 pb-4 sm:px-6">
+        <table className="w-full min-w-[640px] text-left text-sm">
+          <tbody>
+            <OutsideRows code={code} groups={groups} />
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
+function BlockTable({ block, defaultOpen, outside }: { block: TargetBlock; defaultOpen: boolean; outside: OutsideGroup[] }) {
   return (
     <details className="group border-t border-line first:border-t-0" open={defaultOpen || undefined}>
       <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 hover:bg-sunken sm:px-6">
         <ChevronDown aria-hidden className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" />
         <span className="w-12 font-bold text-ink">{block.code}</span>
-        <span className="min-w-0 flex-1 basis-48 text-xs text-muted">{block.summary}</span>
+        <span className="min-w-0 flex-1 basis-48 text-xs text-muted">
+          {block.summary}
+          {outside.length > 0 && <b className="ml-2 rounded bg-warn-wash px-1.5 py-0.5 text-crit">+{sumCount(outside)} di luar panduan</b>}
+        </span>
         <span className="num text-sm text-ink-2">
           <b className={block.collected === 0 && block.target > 0 ? "text-crit" : "text-ink"}>{block.collected}</b> / {block.target}
         </span>
@@ -73,6 +123,7 @@ function BlockTable({ block, defaultOpen }: { block: TargetBlock; defaultOpen: b
                 <td className="num py-2 text-right">{numText(r.b2b)}</td>
               </tr>
             ))}
+            <OutsideRows code={block.code} groups={outside} />
           </tbody>
           <tfoot>
             <tr className="border-t border-line-strong font-bold">
@@ -95,7 +146,18 @@ export function TargetSampling({ targets, selectedAirports }: { targets: TargetD
   const filtered = selectedAirports.length > 0;
   const blocks = useMemo(() => (filtered ? targets.blocks.filter((b) => codes.has(b.code)) : targets.blocks), [targets.blocks, codes, filtered]);
   const outside = useMemo(() => (filtered ? targets.outside.filter((g) => codes.has(g.code)) : targets.outside), [targets.outside, codes, filtered]);
-  const outsideTotal = outside.reduce((a, g) => a + g.count, 0);
+  const outsideTotal = sumCount(outside);
+  const [showOutside, setShowOutside] = useState(false);
+  const outsideByCode = useMemo(() => {
+    const map = new Map<string, OutsideGroup[]>();
+    for (const g of targets.outside) map.set(g.code, [...(map.get(g.code) ?? []), g]);
+    return map;
+  }, [targets.outside]);
+  // Stasiun yang punya respons tetapi tidak punya blok di panduan (mis. BDO) tetap ditampilkan sebagai blok merah.
+  const orphanCodes = useMemo(() => {
+    const known = new Set(targets.blocks.map((b) => b.code));
+    return [...outsideByCode.keys()].filter((c) => c && !known.has(c) && (!filtered || codes.has(c))).sort();
+  }, [outsideByCode, targets.blocks, filtered, codes]);
   const sum = useMemo(() => {
     const target = blocks.reduce((a, b) => a + b.target, 0);
     const collected = blocks.reduce((a, b) => a + b.collected, 0);
@@ -134,11 +196,15 @@ export function TargetSampling({ targets, selectedAirports }: { targets: TargetD
           </div>
         ))}
       </div>
-      {blocks.length === 0 ? (
+      {blocks.length === 0 && orphanCodes.length === 0 && (
         <p className="px-5 py-6 text-sm text-muted sm:px-6">Stasiun yang dipilih tidak punya blok di panduan target sampling.</p>
-      ) : (
-        blocks.map((b) => <BlockTable key={`${b.code}-${blocks.length <= 3}`} block={b} defaultOpen={blocks.length <= 3} />)
       )}
+      {blocks.map((b) => (
+        <BlockTable key={`${b.code}-${blocks.length + orphanCodes.length <= 3}`} block={b} defaultOpen={blocks.length + orphanCodes.length <= 3} outside={outsideByCode.get(b.code) ?? []} />
+      ))}
+      {orphanCodes.map((c) => (
+        <OutsideOnlyBlock key={`${c}-${blocks.length + orphanCodes.length <= 3}`} code={c} groups={outsideByCode.get(c) ?? []} defaultOpen={blocks.length + orphanCodes.length <= 3} />
+      ))}
 
       {outsideTotal > 0 && (
         <div className="border-t border-warn-mark bg-warn-wash px-5 py-4 sm:px-6" role="note">
@@ -151,28 +217,39 @@ export function TargetSampling({ targets, selectedAirports }: { targets: TargetD
           <p className="mt-1 text-xs text-ink-2">
             Respons ini tetap masuk perhitungan index dan seluruh dashboard, tetapi tidak dihitung ke kolom Terkumpul di atas.
           </p>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[480px] text-left text-sm">
-              <thead className="text-xs text-muted">
-                <tr>
-                  <th className="py-1.5 pr-3 font-semibold">Stasiun</th>
-                  <th className="py-1.5 pr-3 font-semibold">Isian maskapai</th>
-                  <th className="py-1.5 pr-3 font-semibold">Alasan</th>
-                  <th className="py-1.5 text-right font-semibold">Respons</th>
-                </tr>
-              </thead>
-              <tbody>
-                {outside.map((g) => (
-                  <tr key={`${g.code}|${g.airline}|${g.reason}`} className="border-t border-line">
-                    <td className="py-1.5 pr-3 font-semibold">{g.code || "–"}</td>
-                    <td className="py-1.5 pr-3">{g.airline}</td>
-                    <td className="py-1.5 pr-3 text-ink-2">{OUTSIDE_REASON_LABEL[g.reason]}</td>
-                    <td className="num py-1.5 text-right font-semibold">{g.count}</td>
+          <button
+            type="button"
+            onClick={() => setShowOutside((v) => !v)}
+            aria-expanded={showOutside}
+            className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-warn-mark bg-card px-3 text-xs font-semibold text-crit hover:bg-sunken"
+          >
+            <ChevronDown aria-hidden className={`size-3.5 transition-transform ${showOutside ? "rotate-180" : ""}`} />
+            {showOutside ? "Sembunyikan data" : "Tampilkan data"}
+          </button>
+          {showOutside && (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[480px] text-left text-sm">
+                <thead className="text-xs text-muted">
+                  <tr>
+                    <th className="py-1.5 pr-3 font-semibold">Stasiun</th>
+                    <th className="py-1.5 pr-3 font-semibold">Isian maskapai</th>
+                    <th className="py-1.5 pr-3 font-semibold">Alasan</th>
+                    <th className="py-1.5 text-right font-semibold">Respons</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {outside.map((g) => (
+                    <tr key={`${g.code}|${g.airline}|${g.reason}`} className="border-t border-line">
+                      <td className="py-1.5 pr-3 font-semibold">{g.code || "–"}</td>
+                      <td className="py-1.5 pr-3">{g.airline}</td>
+                      <td className="py-1.5 pr-3 text-ink-2">{OUTSIDE_REASON_LABEL[g.reason]}</td>
+                      <td className="num py-1.5 text-right font-semibold">{g.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </section>
