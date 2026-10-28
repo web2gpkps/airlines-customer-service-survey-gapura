@@ -16,7 +16,6 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Airline Customer CSS Survey",
   description: "Dashboard index kepuasan pelanggan maskapai, PT Gapura Angkasa",
-  icons: { icon: "/logo-gapura.png" },
 };
 
 export const viewport: Viewport = {
