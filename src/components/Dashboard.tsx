@@ -26,7 +26,7 @@ const AUTO_REFRESH_MS = 2 * 60_000;
 /** main = dashboard utama; admin-cabang = halaman Share Akses Cabang (admin); cabang = halaman yang dibuka cabang lewat link. */
 export type DashboardVariant = "main" | "admin-cabang" | "cabang";
 
-export function Dashboard({ data, variant = "main", targets, branchCode }: { data: DashboardData; variant?: DashboardVariant; targets?: TargetData; branchCode?: string }) {
+export function Dashboard({ data, variant = "main", targets, branchCode, shareOrigin }: { data: DashboardData; variant?: DashboardVariant; targets?: TargetData; branchCode?: string; shareOrigin?: string }) {
   const isBranch = variant === "cabang";
   const router = useRouter();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -113,9 +113,9 @@ export function Dashboard({ data, variant = "main", targets, branchCode }: { dat
       {presenting && (
         <PresentationMode meta={SEGMENT_META.airline} sections={segment.sections} responses={filtered} filterText={filterText} onClose={closePresenting} />
       )}
-      {variant === "main" && <ShareDialog open={dialog === "share"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} />}
+      {variant === "main" && <ShareDialog open={dialog === "share"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} origin={shareOrigin} />}
       <ExportDialog open={dialog === "export"} onClose={() => setDialog(null)} data={data} initialScope={currentScope} exportBase={isBranch && branchCode ? `/api/cabang-export/${encodeURIComponent(branchCode)}` : undefined} />
-      {variant === "admin-cabang" && <BranchShareDialog open={dialog === "branch"} onClose={() => setDialog(null)} />}
+      {variant === "admin-cabang" && <BranchShareDialog open={dialog === "branch"} onClose={() => setDialog(null)} origin={shareOrigin} />}
     </div>
   );
 }

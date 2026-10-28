@@ -6,7 +6,7 @@ import { assertAdmin } from "@/lib/admin";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { parseScope, scopeToSearch } from "@/lib/filters";
 import { clearSheetCache } from "@/lib/sheets";
-import { createLink, getLink, isBranchLink, listLinks, revokeLink, type ShareLink } from "@/lib/share-store";
+import { createLink, deleteAllInactiveLinks, deleteInactiveLink, getLink, isBranchLink, listLinks, revokeLink, type ShareLink } from "@/lib/share-store";
 
 export async function refreshData() {
   await assertAdmin();
@@ -56,4 +56,14 @@ export async function revokeBranchLink(code: string): Promise<boolean> {
   const link = await getLink(String(code));
   if (!link || !isBranchLink(link)) return false;
   return revokeLink(link.code);
+}
+
+export async function deleteBranchLink(code: string): Promise<boolean> {
+  await assertAdmin();
+  return deleteInactiveLink(String(code), "cabang");
+}
+
+export async function deleteInactiveBranchLinks(): Promise<number> {
+  await assertAdmin();
+  return deleteAllInactiveLinks("cabang");
 }

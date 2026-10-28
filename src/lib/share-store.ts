@@ -31,6 +31,7 @@ interface Store {
   get(code: string): Promise<ShareLink | null>;
   list(): Promise<ShareLink[]>;
   update(link: ShareLink): Promise<void>;
+  remove(code: string): Promise<void>;
 }
 
 // ---------- Upstash Redis (REST) ----------
@@ -90,6 +91,12 @@ function upstashStore(url: string, token: string): Store {
     async update(link) {
       await command("SET", key(link.code), JSON.stringify(link));
     },
+    async remove(code) {
+      await call("/pipeline", [
+        ["DEL", key(code)],
+        ["LREM", "share:index", "0", code],
+      ]);
+    },
   };
 }
 
@@ -119,6 +126,7 @@ function fileStore(): Store {
     get: async (code) => (await load()).find((l) => l.code === code) ?? null,
     list: async () => (await load()).slice(0, LIST_LIMIT),
     update: (link) => serial(async () => save((await load()).map((l) => (l.code === link.code ? link : l)))),
+    remove: (code) => serial(async () => save((await load()).filter((l) => l.code !== code))),
   };
 }
 
@@ -179,4 +187,23 @@ export async function revokeLink(code: string): Promise<boolean> {
   }
   remember(link);
   return true;
+}
+
+/** Menghapus link yang sudah tidak aktif (diputus atau kedaluwarsa). Link yang masih aktif tidak pernah dihapus di sini. */
+export async function deleteInactiveLink(code: string, kind: "report" | "cabang"): Promise<boolean> {
+  if (!CODE_PATTERN.test(code)) return false;
+  const s = getStore();
+  const link = await s.get(code);
+  if (!link || (kind === "cabang") !== isBranchLink(link)) return false;
+  if (!link.revokedAt && !isExpired(link)) return false;
+  await s.remove(code);
+  lastKnown.delete(code);
+  return true;
+}
+
+export async function deleteAllInactiveLinks(kind: "report" | "cabang"): Promise<number> {
+  const inactive = (await listLinks(kind)).filter((l) => l.revokedAt || isExpired(l));
+  let removed = 0;
+  for (const l of inactive) if (await deleteInactiveLink(l.code, kind)) removed++;
+  return removed;
 }

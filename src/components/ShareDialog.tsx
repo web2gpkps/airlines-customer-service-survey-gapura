@@ -14,7 +14,9 @@ export function ShareDialog({
   onClose,
   data,
   initialScope,
+  origin: configuredOrigin,
 }: {
+  origin?: string;
   open: boolean;
   onClose: () => void;
   data: DashboardData;
@@ -30,9 +32,9 @@ export function ShareDialog({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    setOrigin(configuredOrigin ?? window.location.origin);
     setCanNativeShare(typeof navigator.share === "function");
-  }, []);
+  }, [configuredOrigin]);
 
   const scopeKey = scopeToSearch(scope);
   // Link hanya berlaku untuk pilihan yang dipakai saat dibuat; mengubah pilihan berarti harus membuat link baru.
