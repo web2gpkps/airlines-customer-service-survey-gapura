@@ -50,7 +50,8 @@ export function parseTargetSheet(values: string[][], formulas: string[][]): Pars
 
   values.forEach((row, i) => {
     const first = (row[0] ?? "").trim();
-    const header = first.match(/^CABANG\s+([A-Za-z0-9]{3})$/i);
+    // Judul blok kini "CABANG AAP | Total Responden Terkumpul = 3"; bentuk lama "CABANG AAP" tetap terbaca.
+    const header = first.match(/^CABANG\s+([A-Za-z0-9]{3})(?:\s*\||$)/i);
     if (header) {
       current = { code: header[1].toUpperCase(), summary: (row[3] ?? "").trim(), target: 0, collected: 0, remaining: 0, pct: null, b2b: 0, rows: [] };
       blocks.push(current);
@@ -115,7 +116,8 @@ export function classifyOutside(parsed: Parsed, responses: Response[]): OutsideG
     else {
       const block = blockCodes.get(code);
       if (!block) reason = "no-block";
-      else if (!parsed.rules.some((rule) => rule.code === code && rule.airline.test(r.airline))) {
+      // Station baru tanpa kuota (mis. BDO): sheet menghitung semua respons stasiun itu, jadi bukan "di luar panduan".
+      else if (!(block.target === 0 && block.collected > 0 && !parsed.rules.some((rule) => rule.code === code)) && !parsed.rules.some((rule) => rule.code === code && rule.airline.test(r.airline))) {
         reason = block.target === 0 ? "b2b-only" : "airline-unlisted";
       }
     }

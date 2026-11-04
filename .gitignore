@@ -2,6 +2,7 @@ node_modules
 .next
 out
 .env
+.env.local
 .env*.local
 *.tsbuildinfo
 next-env.d.ts
@@ -20,4 +21,4 @@ httpsairline-*.txt
 .data/
 
 # Semua dokumen .md di docs/ (PRD, riwayat, catatan): jangan pernah di-push ke GitHub
-docs/**/*.md
+docs/
