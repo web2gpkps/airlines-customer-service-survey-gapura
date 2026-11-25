@@ -4,10 +4,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, LogOut, Presentation, RefreshCw, RotateCcw, Share2, Users } from "lucide-react";
+import { ArrowLeft, Download, ListChecks, LogOut, Presentation, RefreshCw, RotateCcw, Share2, Users } from "lucide-react";
 import { logout, refreshData } from "@/app/actions";
 import { ALL_CONTENT, EMPTY_FILTERS, KPI_OPTIONS, applyFilters, hasFilters, type Filters, type ReportScope } from "@/lib/filters";
 import { buildSegmentReport } from "@/lib/report";
+import { categorize, computeSurvey, formatIndex } from "@/lib/scoring";
 import type { DashboardData } from "@/lib/sheets";
 import { SEGMENT_META } from "@/lib/survey-config";
 import { MultiSelect } from "./MultiSelect";
@@ -18,7 +19,7 @@ import { ShareDialog } from "./ShareDialog";
 import { BranchShareDialog } from "./BranchShareDialog";
 import { TargetSampling } from "./TargetSampling";
 import type { TargetData } from "@/lib/target-shared";
-import { formatDateTime, formatMonth } from "./ui";
+import { formatDateTime, formatMonth, toneMark } from "./ui";
 import { useAutoRefresh } from "./useAutoRefresh";
 
 const AUTO_REFRESH_MS = 2 * 60_000;
@@ -47,6 +48,9 @@ export function Dashboard({ data, variant = "main", targets, branchCode, shareOr
       routes: [...new Set(all.map((r) => r.route))].filter(Boolean).sort(),
     };
   }, [segment.responses]);
+  // Kartu segmen B2C di bawah judul: jumlah respons dan index mengikuti filter yang aktif.
+  const tabIndex = useMemo(() => computeSurvey(segment.sections, filtered).overall.index, [segment.sections, filtered]);
+  const tabCategory = categorize(tabIndex);
   const filterText = useMemo(
     () => (presenting ? buildSegmentReport(data, "airline", filters).filterText : ""),
     [presenting, data, filters],
@@ -63,7 +67,7 @@ export function Dashboard({ data, variant = "main", targets, branchCode, shareOr
   return (
     <div className="min-h-dvh">
       <header className="runway border-b border-line">
-        <div className="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-4 px-4 pt-5 pb-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-4 sm:gap-5">
             <Image src="/logo-gapura.webp" alt="Gapura Airport Services" width={1052} height={569} priority className="h-10 w-auto shrink-0 sm:h-12" />
             <div className="h-10 w-px shrink-0 bg-line-strong" aria-hidden />
@@ -82,9 +86,32 @@ export function Dashboard({ data, variant = "main", targets, branchCode, shareOr
             <button onClick={() => setDialog("export")} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2"><Download aria-hidden className="size-4" /> Export</button>
             {variant === "main" && <button onClick={() => setDialog("share")} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"><Share2 aria-hidden className="size-4" /> Bagikan</button>}
             {variant === "main" && <Link href="/akses-cabang" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand bg-card px-3.5 text-sm font-semibold text-brand transition-colors hover:bg-brand-wash"><Users aria-hidden className="size-4" /> Share Akses Cabang</Link>}
+            {variant === "main" && <Link href="/tindak-lanjut" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-crit px-3.5 text-sm font-semibold text-white transition-colors hover:bg-crit/85"><ListChecks aria-hidden className="size-4" /> Tindak Lanjut</Link>}
             {variant === "admin-cabang" && <Link href="/" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2"><ArrowLeft aria-hidden className="size-4" /> Dashboard utama</Link>}
             {variant === "admin-cabang" && <button onClick={() => setDialog("branch")} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"><Share2 aria-hidden className="size-4" /> Bagikan akses cabang</button>}
             {!isBranch && <button onClick={() => logout()} aria-label="Keluar" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-sm font-semibold text-ink transition-colors hover:border-ink-2"><LogOut aria-hidden className="size-4" /> <span className="hidden lg:inline">Keluar</span></button>}
+          </div>
+        </div>
+
+        <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
+          <div role="group" aria-label="Segmen survei" className="grid grid-cols-1 gap-2 sm:flex sm:gap-3">
+            <div className="relative flex min-h-16 items-center gap-3 rounded-t-xl border border-b-0 border-line bg-page px-3 py-3 text-left sm:min-w-72 sm:px-5">
+              <span className="grid h-9 min-w-12 place-items-center rounded-lg bg-ink px-2 font-mono text-sm font-semibold text-white">B2C</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-ink">{SEGMENT_META.airline.audience}</span>
+                <span className="block text-xs text-muted"><span className="num">{filtered.length}</span> respons</span>
+              </span>
+              <span className="hidden text-right sm:block">
+                <span className="num block text-xl font-extrabold tracking-tight text-ink">{formatIndex(tabIndex)}</span>
+                {tabCategory && (
+                  <span className="flex items-center justify-end gap-1 text-[11px] font-medium text-muted">
+                    <span className={`size-1.5 rounded-full ${toneMark(tabCategory.tone)}`} aria-hidden />
+                    {tabCategory.label}
+                  </span>
+                )}
+              </span>
+              <span className="absolute inset-x-0 -top-px h-[3px] rounded-t-xl bg-brand" aria-hidden />
+            </div>
           </div>
         </div>
       </header>

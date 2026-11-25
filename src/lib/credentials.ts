@@ -51,3 +51,10 @@ export function getSheetId(): string {
   if (!id) throw new Error("GOOGLE_SHEET_ID belum diatur di .env.");
   return id;
 }
+
+/** Sheet "Tracking Follow Up Index CSS Airline" (terpisah dari sheet survei). Service account harus berstatus Editor di sini. */
+export function getTrackerSheetId(): string {
+  const id = process.env.TRACKER_SHEET_ID?.trim() || readRawEnvValue("TRACKER_SHEET_ID");
+  if (!id) throw new Error("TRACKER_SHEET_ID belum diatur di .env.");
+  return id;
+}
